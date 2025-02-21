@@ -6,5 +6,5 @@
 - [ ] Make pipes connections using bezier curve and other fancy stuff 🤔 (half done)<br>
 - [ ] Repair pipes UV 
 - [ ] First visualization demo
-- [ ] Optimalisation with using Unity Jobs and 
+- [ ] Optimalisation with using Unity Jobs and Advanced Mesh API with Multi-Stream Approach, <a href="https://catlikecoding.com/unity/tutorials/procedural-meshes/creating-a-mesh/">great blog about that</a>
 - [ ] Release this as free simple 3D Line renderer asset avaible for everyone 
