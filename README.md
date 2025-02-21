@@ -1,2 +1,10 @@
-# 3DLineRenderer
- 3DLineRenderer for unity
+# 3DLineRenderer (WIP)
+
+#### RoadMap:
+:heavy_check_mark: Learn how to make plane,cube,circle,sphere,capsule 3D mesh renderer <br>
+:heavy_check_mark: Make basic 3D line renderer without connections in between <br>
+:heavy_check_mark: Make pipes connections using bezier curve and other fancy stuff 🤔<br>
+- [ ] Repair pipes UV 
+- [ ] First visualization demo
+- [ ] Optimalisation with using Unity Jobs and 
+- [ ] Release this as free simple 3D Line renderer asset avaible for everyone 
