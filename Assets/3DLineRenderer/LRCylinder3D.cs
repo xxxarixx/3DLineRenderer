@@ -18,6 +18,9 @@ namespace LineRenderer3D
         List<Vector3> points = new();
 
         [SerializeField]
+        List<DebugGizmos> pointsDebug = new();
+
+        [SerializeField]
         List<Vector3> vertices;
 
         [SerializeField]
@@ -30,10 +33,10 @@ namespace LineRenderer3D
         List<int> triangles;
 
         [SerializeField]
-        DebugGizmos debugGizmos;
+        bool stopRegeneration = false;
 
         [SerializeField]
-        bool stopRegeneration = false;
+        float vertexGizmosSize = 0.1f;
 
         [Flags]
         enum DebugGizmos
@@ -75,7 +78,9 @@ namespace LineRenderer3D
         struct SegmentInfo
         {
             internal Vector3 startSegmentCenter;
+            internal List<int> startSegmentVericesIndex;
             internal Vector3 endSegmentCenter;
+            internal List<int> endSegmentVericesIndex;
         }
         List<SegmentInfo> segmentInfos;
         void GenerateMesh()
@@ -90,7 +95,6 @@ namespace LineRenderer3D
             }
             if (points.Count < 2)
             {
-                Debug.Log("cleared?");
                 mesh.Clear();
                 return;
             }
@@ -115,10 +119,39 @@ namespace LineRenderer3D
                 Vector3 endCenter = end + rotation * Vector3.zero;
                 startCenter = (s > 0) ? startCenter - (-directionToEnd * distance) : startCenter;
                 endCenter = (s < points.Count - 2) ? endCenter - directionToEnd * distance : endCenter;
+                List<int> startSegmentVericesIndex = new();
+                List<int> endSegmentVericesIndex = new();
+
+                int baseIndex = s * numberOfFaces * 2;
+                int baseNextIndex = (s + 1) * numberOfFaces * 2;
+                for (int i = 0; i < numberOfFaces; i++)
+                {
+                    int current = baseIndex + i * 2;
+                    int next = baseIndex + ((i + 1) % numberOfFaces) * 2;
+
+                    int nextSegmentCurrent = baseNextIndex + i * 2;
+                    int nextSegmentNext = baseNextIndex + ((i + 1) % numberOfFaces) * 2;
+
+                    if (s < points.Count - 1)
+                    {
+                        // First connection triangle (current segment end to next segment start)
+                        startSegmentVericesIndex.Add(current + 1);
+                        endSegmentVericesIndex.Add(next + 1);
+                        startSegmentVericesIndex.Add(nextSegmentCurrent);
+
+                        // Second connection triangle (next segment start to next segment end)
+                        endSegmentVericesIndex.Add(next + 1);
+                        endSegmentVericesIndex.Add(nextSegmentNext);
+                        startSegmentVericesIndex.Add(nextSegmentCurrent);
+                    }
+                }
+
                 SegmentInfo segmentInfo = new() 
                 {
                     startSegmentCenter = transform.TransformPoint(startCenter),
-                    endSegmentCenter = transform.TransformPoint(endCenter)
+                    endSegmentCenter = transform.TransformPoint(endCenter),
+                    startSegmentVericesIndex = startSegmentVericesIndex,
+                    endSegmentVericesIndex = endSegmentVericesIndex
                 };
                 segmentInfos.Add(segmentInfo);
             }
@@ -130,7 +163,6 @@ namespace LineRenderer3D
                 Vector3 end = transform.InverseTransformPoint(points[s + 1]);
                 Vector3 direction = (end - start).normalized;
 
-                Debug.Log($"direction {direction}");
                 if (direction == Vector3.zero) continue;
 
                 Quaternion rotation = Quaternion.LookRotation(direction);
@@ -138,7 +170,6 @@ namespace LineRenderer3D
                 // Generate vertices for this segment
                 for (int i = 0; i < numberOfFaces; i++)
                 {
-                    Debug.Log("face");
                     float theta = Mathf.PI * 2 * i / numberOfFaces;
                     Vector3 circleOffset = new Vector3(
                         Mathf.Cos(theta) * radius,
@@ -176,8 +207,6 @@ namespace LineRenderer3D
                 {
                     int current = baseIndex + i * 2;
                     int next = baseIndex + ((i + 1) % numberOfFaces) * 2;
-
-                    Debug.Log($"iteration:{i} | current: {current} , next: {next}");
                     // First triangle
                     triangles.Add(current);
                     triangles.Add(next);
@@ -189,7 +218,6 @@ namespace LineRenderer3D
                     triangles.Add(current + 1);
                 }
             }
-
 
             //Generate connection curve
             for (int s = 0; s < points.Count - 1; s++)
@@ -208,14 +236,20 @@ namespace LineRenderer3D
                     Debug.DrawRay(B, dirToC, Color.blue, 2f);
                     Debug.DrawRay(B, inBetweenDir, Color.green, 2f);
                     Vector3 helpControlPoint = B + inBetweenDir * (distance * distanceControlPointMultiplayer);
+                    
+                    var currentSegment = segmentInfos[s];
+                    var previousSegment = segmentInfos[s - 1];
 
-                    for (int i = 1; i < pointsPerCurve; i++)
+                    //get end vertices of segment
+                    //get start vertices of segment
+                    for (int i = 0; i < segmentInfos[s].startSegmentVericesIndex.Count; i++)
                     {
-                        Debug.DrawLine(segmentInfos[s - 1].endSegmentCenter, helpControlPoint, Color.magenta, 1f);
-                        Debug.DrawLine(segmentInfos[s].startSegmentCenter, helpControlPoint, Color.yellow, 1f);
-                        vertices.Add(transform.InverseTransformPoint(QuadraticBezier(segmentInfos[s - 1].endSegmentCenter, helpControlPoint, segmentInfos[s].startSegmentCenter, i / (float)pointsPerCurve)));
-                        normals.Add(inBetweenDir);
-                        uv.Add(new Vector2(0, 0));
+                        for (int p = 1; p < pointsPerCurve; p++)
+                        {
+                            vertices.Add(transform.InverseTransformPoint(QuadraticBezier(previousSegment.endSegmentCenter, helpControlPoint, currentSegment.startSegmentCenter, p / (float)pointsPerCurve)));
+                            normals.Add(inBetweenDir);
+                            uv.Add(new Vector2(0, 0));
+                        }
                     }
                 }
             }
@@ -226,6 +260,8 @@ namespace LineRenderer3D
             mesh.normals = normals.ToArray();
             mesh.uv = uv.ToArray();
             mesh.RecalculateBounds();
+            if(meshFilter != null)
+                meshFilter.mesh = mesh;
         }
 
         Vector3 QuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
@@ -243,6 +279,8 @@ namespace LineRenderer3D
         {
             if (meshFilter != null && points.Count > 1)
                 GenerateMesh();
+
+            pointsDebug.Capacity = points.Capacity;
         }
         void OnDrawGizmos()
         {
@@ -254,36 +292,45 @@ namespace LineRenderer3D
         }
         void DebugGizmoses()
         {
-            if (debugGizmos == DebugGizmos.None)
-                return;
-            bool visualizeVertices = (debugGizmos & DebugGizmos.Vertices) != 0;
-            bool visualizeNormals = (debugGizmos & DebugGizmos.Normals) != 0;
-            bool visualizeSegmentsInfo = (debugGizmos & DebugGizmos.SegmentsInfo) != 0;
-            if (visualizeNormals)
+            for (int p = 0; p < pointsDebug.Count; p++)
             {
-                Gizmos.color = Color.blue;
-                for (int i = 0; i < normals.Count; i++)
+                var debugGizmos = pointsDebug[p];
+                if (debugGizmos == DebugGizmos.None)
+                    continue;
+                var segmentInfo = segmentInfos[p];
+                bool visualizeVertices = (debugGizmos & DebugGizmos.Vertices) != 0;
+                bool visualizeNormals = (debugGizmos & DebugGizmos.Normals) != 0;
+                bool visualizeSegmentsInfo = (debugGizmos & DebugGizmos.SegmentsInfo) != 0;
+                if (visualizeNormals)
                 {
-                    Vector3 normal = normals[i];
-                    Vector3 verice = transform.TransformPoint(vertices[i]);
-                    Gizmos.DrawRay(verice, normal);
+                    Gizmos.color = Color.blue;
+                    for (int i = 0; i < normals.Count; i++)
+                    {
+                        Vector3 normal = normals[i];
+                        Vector3 verice = transform.TransformPoint(vertices[i]);
+                        Gizmos.DrawRay(verice, normal);
+                    }
                 }
-            }
-            if(visualizeVertices)
-            {
-                Gizmos.color = Color.red;
-                foreach (var vertice in vertices)
-                    Gizmos.DrawSphere(transform.TransformPoint(vertice), 0.1f);
-            }
-            if(visualizeSegmentsInfo)
-                foreach (var segmentInfo in segmentInfos)
+                if(visualizeVertices)
+                {
+                    Gizmos.color = Color.red;
+                    foreach (var vertice in vertices)
+                        Gizmos.DrawSphere(transform.TransformPoint(vertice), vertexGizmosSize);
+                }
+                if(visualizeSegmentsInfo)
                 {
                     Gizmos.color = Color.yellow;
-                    Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), 0.1f);
+                    Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), vertexGizmosSize);
+                    for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
+                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
                     Gizmos.color = Color.magenta;
-                    Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), 0.15f);
-
+                    Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), vertexGizmosSize + vertexGizmosSize / 2);
+                    for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
+                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
                 }
+
+                    
+            }
         }
     }
 }
