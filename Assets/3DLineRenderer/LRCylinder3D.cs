@@ -199,8 +199,14 @@ namespace LineRenderer3D
                 }
             }
 
+            int iteration = 0;
             foreach (var mod in GetComponents<IModifierBase>())
+            {
                 mod.ManipulateMesh(this, segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
+                Debug.Log($"Modifier order: {iteration} {mod.Name}");
+                iteration++;
+            }
+                
 
             mesh.Clear();
             mesh.vertices = vertices.ToArray();

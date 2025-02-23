@@ -9,13 +9,14 @@ namespace LineRenderer3D.Modifiers
         [SerializeField] bool visualizeControlPoints;
         [SerializeField] bool visualizeConnectionPoints;
         [SerializeField] bool visualizeDirections;
-        [SerializeField][Range(0, 3)] int iVis;
         [SerializeField][Range(-2f, 2f)] float distanceControlPointMultiplayer;
         [SerializeField] float vertexGizmosSize = 0.1f;
         [SerializeField] internal int pointsPerCurve = 5;
 
         readonly List<Vector3> helpControlPoints = new();
         readonly List<Vector3> connectionPoints = new();
+
+        public string Name => ToString();
 
         public void ManipulateMesh(LRCylinder3D lr, List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
