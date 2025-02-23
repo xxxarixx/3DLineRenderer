@@ -2,10 +2,12 @@
 
 #### RoadMap:
 :heavy_check_mark: Learn how to make plane,cube,circle,sphere,capsule 3D mesh renderer <br>
+<img src="ReadmeAssets/Primitive3DShapes.png" width=250><br>
 :heavy_check_mark: Make basic 3D line renderer without connections in between <br>
 :heavy_check_mark: Make pipes connections using bezier curve and other fancy stuff 🤔<br>
-<img src="ReadmeAssets/pipesConnections.png" width=300>
+<img src="ReadmeAssets/pipesConnections.png" width=250><br>
 - [ ] Repair pipes UV<br>
+<img src="ReadmeAssets/uvIssue.png" width=250><br>
 - [ ] Make auto line spliting if single line is too big to ensure that uv is always perfecto✨<br>
 - [ ] First visualization demo<br>
 - [ ] Optimalisation with using Unity Jobs and Advanced Mesh API with Multi-Stream Approach, <a href="https://catlikecoding.com/unity/tutorials/procedural-meshes/creating-a-mesh/">great blog about that</a><br>
