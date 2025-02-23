@@ -24,108 +24,96 @@ namespace LineRenderer3D.Modifiers
             pointsPerCurve = Mathf.Clamp(pointsPerCurve, 2, pointsPerCurve);
 
             int numberOfFaces = lr.numberOfFaces;
-            var points = lr.points;
+            float radius = lr.radius;
 
-            for (int s = 0; s < points.Count - 1; s++)
+            for (int s = 1; s < lr.points.Count - 1; s++) // Start from 1 to avoid first segment
             {
-                if (s > 0 && points.Count > 1)
+                var currentSegment = segmentInfos[s];
+                var previousSegment = segmentInfos[s - 1];
+
+                Vector3 A = lr.points[s - 1];
+                Vector3 B = lr.points[s];
+                Vector3 C = lr.points[s + 1];
+
+                Vector3 dirToA = (A - B).normalized;
+                Vector3 dirToC = (C - B).normalized;
+                Vector3 inBetweenDir = normalize(-lerp(dirToA, dirToC, 0.5f));
+
+                Vector3 prevEndCenter = previousSegment.endSegmentCenter;
+                Vector3 currStartCenter = currentSegment.startSegmentCenter;
+
+                Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (lr.distance * distanceControlPointMultiplayer);
+                helpControlPoints.Add(helpControlPoint);
+
+                int initialVerticesCount = vertices.Count;
+
+                // Generate vertices for the connection curve
+                for (int p = 1; p < pointsPerCurve; p++)
                 {
-                    Vector3 A = points[s - 1];
-                    Vector3 B = points[s];
-                    Vector3 C = points[s + 1];
-
-                    Vector3 dirToA = (A - B).normalized;
-                    Vector3 dirToC = (C - B).normalized;
-                    Vector3 inBetweenDir = normalize(-lerp(dirToA, dirToC, 0.5f));
-
-                    var currentSegment = segmentInfos[s];
-                    var previousSegment = segmentInfos[s - 1];
-                    int initialVerticesCount = vertices.Count;
+                    float t = p / (float)(pointsPerCurve - 1);
+                    Vector3 centralPoint = QuadraticBezier(prevEndCenter, helpControlPoint, currStartCenter, t);
+                    Vector3 tangent = QuadraticBezierDerivative(prevEndCenter, helpControlPoint, currStartCenter, t).normalized;
+                    Quaternion rotation = Quaternion.LookRotation(tangent);
 
                     for (int i = 0; i < numberOfFaces; i++)
                     {
-                        var startSegmentVertex = transform.TransformPoint(vertices[currentSegment.startSegmentVericesIndex[i]]);
-                        var endSegmentVertex = transform.TransformPoint(vertices[previousSegment.endSegmentVericesIndex[i]]);
-                        Vector3 helpControlPoint = Vector3.Lerp(startSegmentVertex, endSegmentVertex, 0.5f) + inBetweenDir * (lr.distance * distanceControlPointMultiplayer);
-                        helpControlPoints.Add(helpControlPoint);
+                        float theta = Mathf.PI * 2 * i / numberOfFaces;
+                        Vector3 circleOffset = new Vector3(
+                            Mathf.Cos(theta) * radius,
+                            Mathf.Sin(theta) * radius,
+                            0
+                        );
 
-                        int startIndex = vertices.Count;
-                        for (int p = 1; p < pointsPerCurve; p++)
-                        {
-                            float t = p / (float)(pointsPerCurve - 1);
-                            Vector3 point = QuadraticBezier(endSegmentVertex, helpControlPoint, startSegmentVertex, t);
-                            vertices.Add(transform.InverseTransformPoint(point));
-                            connectionPoints.Add(transform.TransformPoint(vertices[^1]));
+                        Vector3 vertexPos = centralPoint + rotation * circleOffset;
+                        vertices.Add(transform.InverseTransformPoint(vertexPos));
+                        connectionPoints.Add(vertexPos);
 
-                            // UV Mapping
-                            float uvU = (float)i / numberOfFaces;
-                            float uvV = 1 - t; // Transition from previous segment (V=1) to current (V=0)
-                            uvs.Add(new Vector2(uvU, uvV));
-
-                            // Normal Calculation
-                            Vector3 prevNormal = normals[previousSegment.endSegmentVericesIndex[i]];
-                            Vector3 currNormal = normals[currentSegment.startSegmentVericesIndex[i]];
-                            Vector3 lerpedNormal = Vector3.Lerp(prevNormal, currNormal, t).normalized;
-                            normals.Add(lerpedNormal);
-                        }
+                        normals.Add((vertexPos - centralPoint).normalized);
+                        uvs.Add(new Vector2((float)i / numberOfFaces, 1 - t));
                     }
+                }
 
-                    // Triangle generation remains the same as previous answer
-                    for (int i = 0; i < numberOfFaces; i++)
+                // Generate triangles between segments
+                for (int i = 0; i < numberOfFaces; i++)
+                {
+                    int nextI = (i + 1) % numberOfFaces;
+
+                    for (int p = 0; p < pointsPerCurve - 1; p++)
                     {
-                        int faceI = i;
-                        int faceJ = (i + 1) % numberOfFaces;
+                        int currentP = p;
+                        int nextP = p + 1;
 
-                        int startIndexI = initialVerticesCount + faceI * (pointsPerCurve - 1);
-                        int startIndexJ = initialVerticesCount + faceJ * (pointsPerCurve - 1);
+                        // Current ring indices
+                        int currentA = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, i, currentP);
+                        int currentB = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, nextI, currentP);
 
-                        for (int step = 0; step < pointsPerCurve; step++)
-                        {
-                            int currentI, nextI;
-                            if (step == 0)
-                            {
-                                currentI = previousSegment.endSegmentVericesIndex[faceI];
-                                nextI = startIndexI;
-                            }
-                            else if (step == pointsPerCurve - 1)
-                            {
-                                currentI = startIndexI + (pointsPerCurve - 2);
-                                nextI = currentSegment.startSegmentVericesIndex[faceI];
-                            }
-                            else
-                            {
-                                currentI = startIndexI + (step - 1);
-                                nextI = startIndexI + step;
-                            }
+                        // Next ring indices
+                        int nextA = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, i, nextP);
+                        int nextB = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, nextI, nextP);
 
-                            int currentJ, nextJ;
-                            if (step == 0)
-                            {
-                                currentJ = previousSegment.endSegmentVericesIndex[faceJ];
-                                nextJ = startIndexJ;
-                            }
-                            else if (step == pointsPerCurve - 1)
-                            {
-                                currentJ = startIndexJ + (pointsPerCurve - 2);
-                                nextJ = currentSegment.startSegmentVericesIndex[faceJ];
-                            }
-                            else
-                            {
-                                currentJ = startIndexJ + (step - 1);
-                                nextJ = startIndexJ + step;
-                            }
+                        // Create two triangles per quad
+                        triangles.Add(currentA);
+                        triangles.Add(currentB);
+                        triangles.Add(nextA);
 
-                            triangles.Add(currentI);
-                            triangles.Add(currentJ);
-                            triangles.Add(nextI);
-
-                            triangles.Add(nextI);
-                            triangles.Add(currentJ);
-                            triangles.Add(nextJ);
-                        }
+                        triangles.Add(nextA);
+                        triangles.Add(currentB);
+                        triangles.Add(nextB);
                     }
                 }
             }
+        }
+
+        int GetRingIndex(LRCylinder3D.SegmentInfo prevSeg, LRCylinder3D.SegmentInfo currSeg, int initialVertices, int faces, int faceIndex, int ring)
+        {
+            if (ring == 0) // Previous segment's end
+                return prevSeg.endSegmentVericesIndex[faceIndex];
+
+            if (ring == pointsPerCurve - 1) // Current segment's start
+                return currSeg.startSegmentVericesIndex[faceIndex];
+
+            // New connection vertices: initialVertices + (ring-1)*faces + faceIndex
+            return initialVertices + (ring - 1) * faces + faceIndex;
         }
 
         Vector3 QuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
@@ -134,6 +122,26 @@ namespace LineRenderer3D.Modifiers
             return (u * u) * p0 + (2 * u * t) * p1 + (t * t) * p2;
         }
 
-        void OnDrawGizmos() { /* Gizmo drawing remains same */ }
+        Vector3 QuadraticBezierDerivative(Vector3 p0, Vector3 p1, Vector3 p2, float t)
+        {
+            return 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
+        }
+
+        void OnDrawGizmos()
+        {
+            if (visualizeControlPoints)
+            {
+                Gizmos.color = Color.cyan;
+                foreach (var point in helpControlPoints)
+                    Gizmos.DrawSphere(point, vertexGizmosSize);
+            }
+
+            if (visualizeConnectionPoints)
+            {
+                Gizmos.color = Color.yellow;
+                foreach (var point in connectionPoints)
+                    Gizmos.DrawWireSphere(point, vertexGizmosSize / 2);
+            }
+        }
     }
 }
