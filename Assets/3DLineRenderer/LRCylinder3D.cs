@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
-using static Unity.Mathematics.math;
+using LineRenderer3D.Modifiers;
 
 namespace LineRenderer3D
 {
@@ -10,13 +9,13 @@ namespace LineRenderer3D
     class LRCylinder3D : MonoBehaviour
     {
         [SerializeField]
-        int numberOfFaces = 8;
+        internal int numberOfFaces = 8;
 
         [SerializeField]
         float radius = 0.1f;
 
         [SerializeField]
-        List<Vector3> points = new();
+        internal List<Vector3> points = new();
 
         [SerializeField]
         List<DebugGizmos> pointsDebug = new();
@@ -66,17 +65,13 @@ namespace LineRenderer3D
         }
 
         [SerializeField]
-        float distance = 1f;
+        internal float distance = 1f;
 
         [SerializeField]
-        [Range(-2f, 2f)]
-        float distanceControlPointMultiplayer;
+        internal int pointsPerCurve = 5;
 
-        [SerializeField]
-        int pointsPerCurve = 5;
-
-        [System.Serializable]
-        class SegmentInfo
+        [Serializable]
+        internal class SegmentInfo
         {
             internal Vector3 startSegmentCenter;
             internal List<int> startSegmentVericesIndex;
@@ -104,9 +99,8 @@ namespace LineRenderer3D
             triangles = new List<int>();
             normals = new List<Vector3>();
             uv = new List<Vector2>();
-            helpControlPoints = new();
-            connectionPoints = new();
             segmentInfos = new();
+            pointsPerCurve = Mathf.Clamp(pointsPerCurve,2, pointsPerCurve);
 
             //Setup segments info
             for (int s = 0; s < points.Count - 1; s++)
@@ -154,9 +148,6 @@ namespace LineRenderer3D
 
                 Quaternion rotation = Quaternion.LookRotation(direction);
 
-                //List<int> startSegmentVericesIndex = new();
-                //List<int> endSegmentVericesIndex = new();
-
                 // Generate vertices for this segment
                 for (int i = 0; i < numberOfFaces; i++)
                 {
@@ -176,9 +167,7 @@ namespace LineRenderer3D
 
 
                     vertices.Add(startVert);
-                    //startSegmentVericesIndex.Add(vertices.Count - 1);
                     vertices.Add(endVert);
-                    //endSegmentVericesIndex.Add(vertices.Count - 1);
 
                     // Normals point outward from cylinder center
                     Vector3 normal = rotation * circleOffset.normalized;
@@ -213,60 +202,8 @@ namespace LineRenderer3D
                 }
             }
 
-           
-
-            //Generate connection curve
-            for (int s = 0; s < points.Count - 1; s++)
-            {
-                if (s > 0 && points.Count > 1)
-                {
-                    Vector3 A = points[s - 1];
-                    Vector3 B = points[s];
-                    Vector3 C = points[s + 1];
-
-                    Vector3 dirToA = (A - B).normalized;
-                    Vector3 dirToC = (C - B).normalized;
-
-                    Vector3 inBetweenDir = normalize(-lerp(dirToA, dirToC, 0.5f));
-                    Debug.DrawRay(B, dirToA, Color.black, 2f);
-                    Debug.DrawRay(B, dirToC, Color.blue, 2f);
-                    Debug.DrawRay(B, inBetweenDir, Color.green, 2f);
-                    
-                    var currentSegment = segmentInfos[s];
-                    var previousSegment = segmentInfos[s - 1];
-
-                    //get end vertices of segment
-                    //get start vertices of segment
-                    for (int i = 0; i < currentSegment.startSegmentVericesIndex.Count; i++)
-                    {
-                        var startSegmentVertex = transform.TransformPoint(vertices[currentSegment.startSegmentVericesIndex[i]]);
-                        var endSegmentVertex = transform.TransformPoint(vertices[previousSegment.endSegmentVericesIndex[i]]);
-                        Vector3 helpControlPoint = Vector3.Lerp(startSegmentVertex,endSegmentVertex, 0.5f) + inBetweenDir * (distance * distanceControlPointMultiplayer);
-                        helpControlPoints.Add(helpControlPoint);
-
-                        int startIndex = vertices.Count;
-                        for (int p = 1; p < pointsPerCurve; p++)
-                        {
-                            vertices.Add(transform.InverseTransformPoint(QuadraticBezier(endSegmentVertex, helpControlPoint, startSegmentVertex, p / (float)pointsPerCurve)));
-                            connectionPoints.Add(transform.TransformPoint(vertices[^1]));
-                            normals.Add(inBetweenDir);
-                            uv.Add(new Vector2(0, 0));
-                        }
-                        
-                        // Construct triangles for this segment
-                        if (s > 1 && s < points.Count - 2) // Ensure there are enough vertices to form triangles
-                        {
-                            for (int p = 0; p < pointsPerCurve - 1; p++)
-                            {
-                                triangles.Add(currentSegment.startSegmentVericesIndex[i]);
-                                triangles.Add(currentSegment.endSegmentVericesIndex[i]);
-                                triangles.Add(currentSegment.startSegmentVericesIndex[i + 1]);
-                            }
-                        }
-                    }
-
-                }
-            }
+            foreach (var mod in GetComponents<IModifierBase>())
+                mod.ManipulateMesh(this, segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
 
             mesh.Clear();
             mesh.vertices = vertices.ToArray();
@@ -277,31 +214,13 @@ namespace LineRenderer3D
             if(meshFilter != null)
                 meshFilter.mesh = mesh;
         }
-        [SerializeField]
-        bool visualizeControlPoints;
-        [SerializeField]
-        bool visualizeConnectionPoints; 
-        List<Vector3> helpControlPoints = new();
-        List<Vector3> connectionPoints = new();
-
-        Vector3 QuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
-        {
-            float u = 1 - t;
-            return (u * u) * p0 + (2 * u * t) * p1 + (t * t) * p2;
-        }
+        
 
         void Update()
         {
             UpdateLine();
         }
-        // Update mesh when values change in inspector
-        void OnValidate()
-        {
-            if (meshFilter != null && points.Count > 1)
-                GenerateMesh();
 
-            pointsDebug.Capacity = points.Capacity;
-        }
         void OnDrawGizmos()
         {
             Gizmos.color = Color.green;
@@ -352,18 +271,7 @@ namespace LineRenderer3D
 
                     
             }
-            if (visualizeControlPoints)
-            {
-                Gizmos.color = Color.green;
-                foreach (var item in helpControlPoints)
-                    Gizmos.DrawCube(item, Vector3.one * vertexGizmosSize);
-            }
-            if (visualizeConnectionPoints)
-            {
-                Gizmos.color = Color.blue;
-                foreach (var item in connectionPoints)
-                    Gizmos.DrawSphere(item, vertexGizmosSize);
-            }
+            
         }
     }
 }
