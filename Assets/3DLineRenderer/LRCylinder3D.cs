@@ -12,7 +12,7 @@ namespace LineRenderer3D
         internal int numberOfFaces = 8;
 
         [SerializeField]
-        float radius = 0.1f;
+        internal float radius = 0.1f;
 
         [SerializeField]
         internal List<Vector3> points = new();
