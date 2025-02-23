@@ -67,8 +67,6 @@ namespace LineRenderer3D
         [SerializeField]
         internal float distance = 1f;
 
-        [SerializeField]
-        internal int pointsPerCurve = 5;
 
         [Serializable]
         internal class SegmentInfo
@@ -100,7 +98,6 @@ namespace LineRenderer3D
             normals = new List<Vector3>();
             uv = new List<Vector2>();
             segmentInfos = new();
-            pointsPerCurve = Mathf.Clamp(pointsPerCurve,2, pointsPerCurve);
 
             //Setup segments info
             for (int s = 0; s < points.Count - 1; s++)

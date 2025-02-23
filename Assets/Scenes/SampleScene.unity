@@ -5400,6 +5400,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   visualizeControlPoints: 0
   visualizeConnectionPoints: 0
+  visualizeDirections: 0
   iVis: 0
   distanceControlPointMultiplayer: 0
   vertexGizmosSize: 0.1
