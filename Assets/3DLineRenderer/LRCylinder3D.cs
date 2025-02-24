@@ -192,13 +192,13 @@ namespace LineRenderer3D
                     // UV mapping
                     if(f > numberOfFaces / 2)
                     {
-                        uv.Add(new Vector2(1f - 1f / numberOfFaces * f, 0));
-                        uv.Add(new Vector2(1f - 1f / numberOfFaces * f, 1));
+                        uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, 0));
+                        uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, 1));
                     }
                     else
                     {
-                        uv.Add(new Vector2(1f / numberOfFaces * f, 0));  
-                        uv.Add(new Vector2(1f / numberOfFaces * f, 1));
+                        uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, 0));  
+                        uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, 1));
                     }
                 }
 

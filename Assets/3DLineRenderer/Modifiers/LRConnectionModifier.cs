@@ -72,9 +72,9 @@ namespace LineRenderer3D.Modifiers
                         normals.Add((vertexPos - centralPoint).normalized);
                         // UV mapping
                         if (f > numberOfFaces / 2)
-                            uvs.Add(new Vector2(1f - (float)f / numberOfFaces, 1 - t));
+                            uvs.Add(new Vector2(2f - ((float)f / numberOfFaces) * 2f, 1 - t));
                         else
-                            uvs.Add(new Vector2((float)f / numberOfFaces, 1 - t));
+                            uvs.Add(new Vector2(((float)f / numberOfFaces) * 2f, 1 - t));
                         //uvs.Add(new Vector2((float)f / numberOfFaces, 1 - t));
                     }
                 }
