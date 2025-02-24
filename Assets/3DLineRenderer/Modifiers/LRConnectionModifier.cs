@@ -18,6 +18,8 @@ namespace LineRenderer3D.Modifiers
 
         public string Name => ToString();
 
+        public bool IsEnabled => enabled;
+
         public void ManipulateMesh(LRCylinder3D lr, List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
             helpControlPoints.Clear();
@@ -31,6 +33,7 @@ namespace LineRenderer3D.Modifiers
             {
                 var currentSegment = segmentInfos[s];
                 var previousSegment = segmentInfos[s - 1];
+
 
                 Vector3 A = lr.points[s - 1];
                 Vector3 B = lr.points[s];

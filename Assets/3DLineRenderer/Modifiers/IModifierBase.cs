@@ -8,5 +8,7 @@ namespace LineRenderer3D.Modifiers
         void ManipulateMesh(LRCylinder3D lr, List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles);
     
         string Name { get; }
+
+        bool IsEnabled { get; }
     }
 }

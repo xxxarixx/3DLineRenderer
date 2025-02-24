@@ -76,9 +76,9 @@ namespace LineRenderer3D
         internal class SegmentInfo
         {
             internal Vector3 startSegmentCenter;
-            internal List<int> startSegmentVericesIndex;
+            internal List<int> startSegmentVericesIndex = new();
             internal Vector3 endSegmentCenter;
-            internal List<int> endSegmentVericesIndex;
+            internal List<int> endSegmentVericesIndex = new();
         }
         List<SegmentInfo> segmentInfos;
         void GenerateMesh()
@@ -120,108 +120,22 @@ namespace LineRenderer3D
             //Setup segments info
             for (int s = 0; s < points.Count - 1; s++)
             {
-                Vector3 start = transform.InverseTransformPoint(points[s]);
-                Vector3 end = transform.InverseTransformPoint(points[s + 1]);
-                Vector3 direction = (end - start).normalized;
-                if (direction == Vector3.zero) continue;
-
-                Quaternion rotation = Quaternion.LookRotation(direction);
-                Vector3 directionToEnd = (end - start).normalized;
-                Vector3 startCenter = start + rotation * Vector3.zero;
-                Vector3 endCenter = end + rotation * Vector3.zero;
-                startCenter = (s > 0) ? startCenter - (-directionToEnd * distance) : startCenter;
-                endCenter = (s < points.Count - 2) ? endCenter - directionToEnd * distance : endCenter;
-                List<int> startSegmentVericesIndex = new();
-                List<int> endSegmentVericesIndex = new();
-
-                int baseIndex = s * numberOfFaces * 2;
-                for (int i = 0; i < numberOfFaces; i++)
-                {
-                    int current = baseIndex + i * 2;
-                    startSegmentVericesIndex.Add(current);
-                    endSegmentVericesIndex.Add(current + 1);
-                }
-
-                SegmentInfo segmentInfo = new() 
-                {
-                    startSegmentCenter = transform.TransformPoint(startCenter),
-                    endSegmentCenter = transform.TransformPoint(endCenter),
-                    startSegmentVericesIndex = startSegmentVericesIndex,
-                    endSegmentVericesIndex = endSegmentVericesIndex
-                };
-                segmentInfos.Add(segmentInfo);
+                var segment = GenerateSegmentInfo(start: transform.InverseTransformPoint(points[s]), 
+                                                  end: transform.InverseTransformPoint(points[s + 1]), 
+                                                  cylinderIndex: s, 
+                                                  canMakeCorner: true);
+                if (segment == null)
+                    continue;
+                segmentInfos.Add(segment);
             }
 
             //Generate cylinders
             for (int s = 0; s < points.Count - 1; s++)
-            {
-                Vector3 start = transform.InverseTransformPoint(points[s]);
-                Vector3 end = transform.InverseTransformPoint(points[s + 1]);
-                Vector3 direction = (end - start).normalized;
-
-                if (direction == Vector3.zero) continue;
-
-                Quaternion rotation = Quaternion.LookRotation(direction);
-
-                // Generate vertices for this segment
-                for (int f = 0; f < numberOfFaces; f++)
-                {
-                    float theta = Mathf.PI * 2 * f / numberOfFaces;
-                    Vector3 circleOffset = new(
-                        Mathf.Cos(theta) * radius,
-                        Mathf.Sin(theta) * radius,
-                        0
-                    );
-
-                    // Calculate positions in local space
-                    Vector3 startVert = start + rotation * circleOffset;
-                    Vector3 endVert = end + rotation * circleOffset;
-                    Vector3 directionToEnd = (endVert - startVert).normalized;
-                    startVert = (s > 0) ? startVert - (-directionToEnd * distance) : startVert;
-                    endVert = (s < points.Count - 2) ? endVert - directionToEnd * distance : endVert;
-
-
-                    vertices.Add(startVert);
-                    vertices.Add(endVert);
-
-                    // Normals point outward from cylinder center
-                    Vector3 normal = rotation * circleOffset.normalized;
-                    normals.Add(normal);
-                    normals.Add(normal);
-
-                    // UV mapping
-                    if(f > numberOfFaces / 2)
-                    {
-                        uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, 0));
-                        uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, 1));
-                    }
-                    else
-                    {
-                        uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, 0));  
-                        uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, 1));
-                    }
-                }
-
-                // Generate triangles for this segment
-                int baseIndex = s * numberOfFaces * 2;
-                for (int i = 0; i < numberOfFaces; i++)
-                {
-                    int current = baseIndex + i * 2;
-                    int next = baseIndex + ((i + 1) % numberOfFaces) * 2;
-                    // First triangle
-                    triangles.Add(current);
-                    triangles.Add(next);
-                    triangles.Add(current + 1);
-
-                    // Second triangle
-                    triangles.Add(next);
-                    triangles.Add(next + 1);
-                    triangles.Add(current + 1);
-                }
-            }
+                GenerateCylinder(transform.InverseTransformPoint(points[s]), transform.InverseTransformPoint(points[s + 1]), s, canMakeCorner:true);
 
             foreach (var mod in GetComponents<IModifierBase>())
-                mod.ManipulateMesh(this, segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
+                if(mod.IsEnabled)
+                    mod.ManipulateMesh(this, segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
                 
 
             mesh.Clear();
@@ -234,6 +148,103 @@ namespace LineRenderer3D
                 meshFilter.mesh = mesh;
         }
         
+        internal void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool canMakeCorner)
+        {
+            Vector3 direction = (end - start).normalized;
+
+            if (direction == Vector3.zero) return;
+
+            Quaternion rotation = Quaternion.LookRotation(direction);
+
+            // Generate vertices for this segment
+            for (int f = 0; f < numberOfFaces; f++)
+            {
+                float theta = Mathf.PI * 2 * f / numberOfFaces;
+                Vector3 circleOffset = new(
+                    Mathf.Cos(theta) * radius,
+                    Mathf.Sin(theta) * radius,
+                    0
+                );
+
+                // Calculate positions in local space
+                Vector3 startVert = start + rotation * circleOffset;
+                Vector3 endVert = end + rotation * circleOffset;
+                Vector3 directionToEnd = (endVert - startVert).normalized;
+                startVert = (cylinderIndex > 0 && canMakeCorner) ? startVert - (-directionToEnd * distance) : startVert;
+                endVert = (cylinderIndex < points.Count - 2 && canMakeCorner) ? endVert - directionToEnd * distance : endVert;
+
+
+                vertices.Add(startVert);
+                vertices.Add(endVert);
+
+                // Normals point outward from cylinder center
+                Vector3 normal = rotation * circleOffset.normalized;
+                normals.Add(normal);
+                normals.Add(normal);
+
+                // UV mapping
+                if (f > numberOfFaces / 2)
+                {
+                    uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, 0));
+                    uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, 1));
+                }
+                else
+                {
+                    uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, 0));
+                    uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, 1));
+                }
+            }
+
+            // Generate triangles for this segment
+            int baseIndex = cylinderIndex * numberOfFaces * 2;
+            for (int i = 0; i < numberOfFaces; i++)
+            {
+                int current = baseIndex + i * 2;
+                int next = baseIndex + ((i + 1) % numberOfFaces) * 2;
+                // First triangle
+                triangles.Add(current);
+                triangles.Add(next);
+                triangles.Add(current + 1);
+
+                // Second triangle
+                triangles.Add(next);
+                triangles.Add(next + 1);
+                triangles.Add(current + 1);
+            }
+        }
+        
+        internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex, bool canMakeCorner)
+        {
+            Vector3 direction = (end - start).normalized;
+            if (direction == Vector3.zero) return null;
+
+            Quaternion rotation = Quaternion.LookRotation(direction);
+            Vector3 directionToEnd = (end - start).normalized;
+            Vector3 startCenter = start + rotation * Vector3.zero;
+            Vector3 endCenter = end + rotation * Vector3.zero;
+            startCenter = (cylinderIndex > 0 && canMakeCorner) ? startCenter - (-directionToEnd * distance) : startCenter;
+            endCenter = (cylinderIndex < points.Count - 2 && canMakeCorner) ? endCenter - directionToEnd * distance : endCenter;
+            List<int> startSegmentVericesIndex = new();
+            List<int> endSegmentVericesIndex = new();
+
+            int baseIndex = cylinderIndex * numberOfFaces * 2;
+            for (int i = 0; i < numberOfFaces; i++)
+            {
+                int current = baseIndex + i * 2;
+                startSegmentVericesIndex.Add(current);
+                endSegmentVericesIndex.Add(current + 1);
+            }
+
+            SegmentInfo segmentInfo = new()
+            {
+                startSegmentCenter = transform.TransformPoint(startCenter),
+                endSegmentCenter = transform.TransformPoint(endCenter),
+                startSegmentVericesIndex = startSegmentVericesIndex,
+                endSegmentVericesIndex = endSegmentVericesIndex
+            };
+            return segmentInfo;
+        }
+
 
         void Update()
         {
