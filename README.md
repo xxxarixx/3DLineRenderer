@@ -9,6 +9,7 @@
 :heavy_check_mark: Repair pipes UV<br>
 <img src="ReadmeAssets/uvIssue.png" width=250><br>
 - [ ] Make auto line spliting if single line is too big to ensure that uv is always perfecto✨<br>
+<img src="ReadmeAssets/autolineSpliting.png" width=250><br>
 - [ ] First visualization demo<br>
 - [ ] Optimalisation with using Unity Jobs and Advanced Mesh API with Multi-Stream Approach, <a href="https://catlikecoding.com/unity/tutorials/procedural-meshes/creating-a-mesh/">great blog about that</a><br>
 - [ ] Release this as free simple 3D Line renderer asset avaible for everyone <br>
