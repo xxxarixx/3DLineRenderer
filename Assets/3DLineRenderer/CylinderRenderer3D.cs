@@ -68,8 +68,7 @@ namespace LineRenderer3D
                     float z = radius * Mathf.Sin(angle);
 
                     vertices[vertexIndex] = new Vector3(x, currentHeight, z);
-                    if(y > 0 && y != _heightSegments)
-                        uv[vertexIndex] = new Vector2((float)s / _segments, (float)y / _heightSegments);
+                    uv[vertexIndex] = new Vector2((float)s / _segments, (float)y / _heightSegments);
                     normals[vertexIndex] = normalize(new Vector3(x, currentHeight, z) - new Vector3(0,currentHeight,0));
                     vertexIndex++;
                 }
@@ -129,8 +128,8 @@ namespace LineRenderer3D
                 triangles[ti + 2] = vi;
             }
 
-                // Assign to mesh
-                _mesh.vertices = vertices;
+            // Assign to mesh
+            _mesh.vertices = vertices;
             _mesh.uv = uv;
             _mesh.triangles = triangles;
             _mesh.normals = normals;

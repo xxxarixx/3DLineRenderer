@@ -9,6 +9,7 @@ namespace LineRenderer3D
     class LRCylinder3D : MonoBehaviour
     {
         [SerializeField]
+        [Tooltip("needed to be even number, in order to uv be properly generated")]
         internal int numberOfFaces = 8;
 
         [SerializeField]
@@ -33,7 +34,10 @@ namespace LineRenderer3D
         List<int> triangles;
 
         [SerializeField]
-        bool stopRegeneration = false;
+        bool stopRegeneration;
+
+        [SerializeField]
+        bool regenerateBasedOnCurrentValues;
 
         [SerializeField]
         float vertexGizmosSize = 0.1f;
@@ -79,11 +83,22 @@ namespace LineRenderer3D
         List<SegmentInfo> segmentInfos;
         void GenerateMesh()
         {
+            if(regenerateBasedOnCurrentValues)
+            {
+                mesh.Clear();
+                mesh.vertices = vertices.ToArray();
+                mesh.triangles = triangles.ToArray();
+                mesh.normals = normals.ToArray();
+                mesh.uv = uv.ToArray();
+                mesh.RecalculateBounds();
+                if (meshFilter != null)
+                    meshFilter.mesh = mesh;
+                return;
+            }
             if (stopRegeneration)
                 return;
             if(mesh == null)
             {
-                meshFilter = GetComponent<MeshFilter>();
                 mesh = new Mesh();
                 meshFilter.mesh = mesh;
             }
@@ -92,6 +107,9 @@ namespace LineRenderer3D
                 mesh.Clear();
                 return;
             }
+
+            if (numberOfFaces % 2 != 0)
+                numberOfFaces++;
 
             vertices = new List<Vector3>();
             triangles = new List<int>();
@@ -146,10 +164,10 @@ namespace LineRenderer3D
                 Quaternion rotation = Quaternion.LookRotation(direction);
 
                 // Generate vertices for this segment
-                for (int i = 0; i < numberOfFaces; i++)
+                for (int f = 0; f < numberOfFaces; f++)
                 {
-                    float theta = Mathf.PI * 2 * i / numberOfFaces;
-                    Vector3 circleOffset = new Vector3(
+                    float theta = Mathf.PI * 2 * f / numberOfFaces;
+                    Vector3 circleOffset = new(
                         Mathf.Cos(theta) * radius,
                         Mathf.Sin(theta) * radius,
                         0
@@ -172,14 +190,17 @@ namespace LineRenderer3D
                     normals.Add(normal);
 
                     // UV mapping
-                    uv.Add(new Vector2((float)i / numberOfFaces, 0));
-                    uv.Add(new Vector2((float)i / numberOfFaces, 1));
-
-
+                    if(f > numberOfFaces / 2)
+                    {
+                        uv.Add(new Vector2(1f - 1f / numberOfFaces * f, 0));
+                        uv.Add(new Vector2(1f - 1f / numberOfFaces * f, 1));
+                    }
+                    else
+                    {
+                        uv.Add(new Vector2(1f / numberOfFaces * f, 0));  
+                        uv.Add(new Vector2(1f / numberOfFaces * f, 1));
+                    }
                 }
-
-                //segmentInfos[s].startSegmentVericesIndex = startSegmentVericesIndex;
-                //segmentInfos[s].endSegmentVericesIndex = endSegmentVericesIndex;
 
                 // Generate triangles for this segment
                 int baseIndex = s * numberOfFaces * 2;
@@ -199,13 +220,8 @@ namespace LineRenderer3D
                 }
             }
 
-            int iteration = 0;
             foreach (var mod in GetComponents<IModifierBase>())
-            {
                 mod.ManipulateMesh(this, segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
-                Debug.Log($"Modifier order: {iteration} {mod.Name}");
-                iteration++;
-            }
                 
 
             mesh.Clear();

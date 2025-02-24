@@ -56,9 +56,9 @@ namespace LineRenderer3D.Modifiers
                     Vector3 tangent = QuadraticBezierDerivative(prevEndCenter, helpControlPoint, currStartCenter, t).normalized;
                     Quaternion rotation = Quaternion.LookRotation(tangent);
 
-                    for (int i = 0; i < numberOfFaces; i++)
+                    for (int f = 0; f < numberOfFaces; f++)
                     {
-                        float theta = Mathf.PI * 2 * i / numberOfFaces;
+                        float theta = Mathf.PI * 2 * f / numberOfFaces;
                         Vector3 circleOffset = new Vector3(
                             Mathf.Cos(theta) * radius,
                             Mathf.Sin(theta) * radius,
@@ -70,7 +70,12 @@ namespace LineRenderer3D.Modifiers
                         connectionPoints.Add(vertexPos);
 
                         normals.Add((vertexPos - centralPoint).normalized);
-                        uvs.Add(new Vector2((float)i / numberOfFaces, 1 - t));
+                        // UV mapping
+                        if (f > numberOfFaces / 2)
+                            uvs.Add(new Vector2(1f - (float)f / numberOfFaces, 1 - t));
+                        else
+                            uvs.Add(new Vector2((float)f / numberOfFaces, 1 - t));
+                        //uvs.Add(new Vector2((float)f / numberOfFaces, 1 - t));
                     }
                 }
 
@@ -123,26 +128,20 @@ namespace LineRenderer3D.Modifiers
             return (u * u) * p0 + (2 * u * t) * p1 + (t * t) * p2;
         }
 
-        Vector3 QuadraticBezierDerivative(Vector3 p0, Vector3 p1, Vector3 p2, float t)
-        {
-            return 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
-        }
+        Vector3 QuadraticBezierDerivative(Vector3 p0, Vector3 p1, Vector3 p2, float t) =>
+            2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
 
         void OnDrawGizmos()
         {
+            Gizmos.color = Color.cyan;
             if (visualizeControlPoints)
-            {
-                Gizmos.color = Color.cyan;
                 foreach (var point in helpControlPoints)
                     Gizmos.DrawSphere(point, vertexGizmosSize);
-            }
 
+            Gizmos.color = Color.yellow;
             if (visualizeConnectionPoints)
-            {
-                Gizmos.color = Color.yellow;
                 foreach (var point in connectionPoints)
                     Gizmos.DrawWireSphere(point, vertexGizmosSize / 2);
-            }
         }
     }
 }
