@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using LineRenderer3D.Modifiers;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace LineRenderer3D
 {
@@ -48,7 +51,8 @@ namespace LineRenderer3D
             None = 0,
             Vertices = 1,
             Normals = 0b10,
-            SegmentsInfo = 0b100
+            SegmentsInfo = 0b100,
+            UV = 0b1000,
         }
 
         Mesh mesh;
@@ -295,6 +299,24 @@ namespace LineRenderer3D
                 bool visualizeVertices = (debugGizmos & DebugGizmos.Vertices) != 0;
                 bool visualizeNormals = (debugGizmos & DebugGizmos.Normals) != 0;
                 bool visualizeSegmentsInfo = (debugGizmos & DebugGizmos.SegmentsInfo) != 0;
+                bool visualizeUV = (debugGizmos & DebugGizmos.UV) != 0;
+#if UNITY_EDITOR
+                if (uv != null && visualizeUV)
+                {
+                    for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
+                    {
+                        var index = segmentInfo.startSegmentVericesIndex[i];
+                        Vector3 pos = transform.TransformPoint(vertices[index]);
+                        Handles.Label(pos, $"U: {uv[index].x:F2}\nV: {uv[index].y:F2}");
+                    }
+                    for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
+                    {
+                        var index = segmentInfo.endSegmentVericesIndex[i];
+                        Vector3 pos = transform.TransformPoint(vertices[index]);
+                        Handles.Label(pos, $"U: {uv[index].x:F2}\nV: {uv[index].y:F2}");
+                    }
+                }
+#endif
                 if (visualizeNormals)
                 {
                     Gizmos.color = Color.blue;
