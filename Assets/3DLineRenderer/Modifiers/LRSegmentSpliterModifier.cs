@@ -10,6 +10,8 @@ namespace LineRenderer3D
         float textureSize = 2f;
         [SerializeField]
         float gizmosSize = .1f;
+        [SerializeField]
+        bool showGizmos;
         public string Name => ToString();
 
         public bool IsEnabled => enabled;
@@ -54,7 +56,7 @@ namespace LineRenderer3D
                                                              cylinderIndex: cylinderIndex,
                                                              cylinderMaxCount: segmentInfos.Count,
                                                              canMakeCorner: false);
-                    segmentInfos.Add(segmentInfo);
+                    segmentInfos.Insert(i + 1,segmentInfo);
                     lr.GenerateCylinder(start:transform.InverseTransformPoint(offset + startHalfwayCenter), 
                                         end:transform.InverseTransformPoint(offset + endCenter), 
                                         cylinderIndex: cylinderIndex,
@@ -69,7 +71,7 @@ namespace LineRenderer3D
 
         void OnDrawGizmos()
         {
-            if (!IsEnabled)
+            if (!IsEnabled || !showGizmos)
                 return;
 
 

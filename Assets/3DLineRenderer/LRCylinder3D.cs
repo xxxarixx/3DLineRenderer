@@ -258,19 +258,6 @@ namespace LineRenderer3D
 
         bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < segmentInfos.Count;
 
-        bool ArePointsFormingCorner(Vector3 a, Vector3 b, Vector3 c, float tolerance = 0.0001f)
-        {
-            // Calculate vectors AB i AC
-            Vector3 ab = b - a;
-            Vector3 ac = c - a;
-
-            // Calculate vector product
-            Vector3 crossProduct = Vector3.Cross(ab, ac);
-
-            // Check length of vector product
-            return crossProduct.sqrMagnitude > tolerance * tolerance;
-        }
-
         void Update()
         {
             UpdateLine();
