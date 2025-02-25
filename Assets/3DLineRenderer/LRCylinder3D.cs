@@ -68,20 +68,29 @@ namespace LineRenderer3D
             GenerateMesh();
         }
 
-        [SerializeField]
-        internal float distance = 1f;
-
 
         [Serializable]
         internal class SegmentInfo
         {
             [SerializeField]
             internal Vector3 startSegmentCenter;
+            internal readonly Vector3 initStartSegmentCenter;
             internal List<int> startSegmentVericesIndex = new();
             [SerializeField]
             internal Vector3 endSegmentCenter;
+            internal readonly Vector3 initEndSegmentCenter;
             internal List<int> endSegmentVericesIndex = new();
+
+            internal SegmentInfo(Vector3 startSegmentCenter, Vector3 endSegmentCenter)
+            {
+                initStartSegmentCenter = startSegmentCenter;
+                initEndSegmentCenter = endSegmentCenter;
+                this.startSegmentCenter = startSegmentCenter;
+                this.endSegmentCenter = endSegmentCenter;
+            }
+
         }
+
         [SerializeField]
         List<SegmentInfo> segmentInfos;
         void GenerateMesh()
@@ -126,8 +135,7 @@ namespace LineRenderer3D
                 var segment = GenerateSegmentInfo(start: transform.InverseTransformPoint(points[s]),
                                                   end: transform.InverseTransformPoint(points[s + 1]),
                                                   cylinderIndex: s,
-                                                  cylinderMaxCount: points.Count,
-                                                  canMakeCorner: true);
+                                                  cylinderMaxCount: points.Count);
                 if (segment == null)
                     continue;
                 segmentInfos.Add(segment);
@@ -137,13 +145,12 @@ namespace LineRenderer3D
             for (int s = 0; s < points.Count - 1; s++)
                 GenerateCylinder(start: transform.InverseTransformPoint(points[s]), 
                                  end: transform.InverseTransformPoint(points[s + 1]), 
-                                 cylinderIndex: s, 
-                                 canMakeCorner: true,
+                                 cylinderIndex: s,
                                  flipUV: false);
 
             foreach (var mod in GetComponents<IModifierBase>())
                 if(mod.IsEnabled)
-                    mod.ManipulateMesh(this, segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
+                    mod.ManipulateMesh(this, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
                 
 
             mesh.Clear();
@@ -156,7 +163,7 @@ namespace LineRenderer3D
                 meshFilter.mesh = mesh;
         }
         
-        internal void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool flipUV, bool canMakeCorner)
+        internal void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool flipUV)
         {
             Vector3 direction = (end - start).normalized;
 
@@ -179,8 +186,8 @@ namespace LineRenderer3D
                 Vector3 endVert = end + rotation * circleOffset;
                 Vector3 directionToEnd = (endVert - startVert).normalized;
 
-                startVert = cylinderIndex > 0 && canMakeCorner ? startVert - (-directionToEnd * distance) : startVert;
-                endVert = cylinderIndex < segmentInfos.Count - 1 && canMakeCorner ? endVert - directionToEnd * distance : endVert;
+                //startVert = cylinderIndex > 0 && canMakeCorner ? startVert - (-directionToEnd * distance) : startVert;
+                //endVert = cylinderIndex < segmentInfos.Count - 1 && canMakeCorner ? endVert - directionToEnd * distance : endVert;
 
 
                 vertices.Add(startVert);
@@ -222,8 +229,13 @@ namespace LineRenderer3D
             }
         }
 
+        internal void ChangeSegmentVerticesLocation(List<int> verticeIndexes, Vector3 translation)
+        {
+            foreach (int index in verticeIndexes)
+                vertices[index] += translation;
+        }
 
-        internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex, int cylinderMaxCount, bool canMakeCorner)
+        internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex, int cylinderMaxCount)
         {
             Vector3 direction = (end - start).normalized;
             if (direction == Vector3.zero) return null;
@@ -233,8 +245,8 @@ namespace LineRenderer3D
             Vector3 startCenter = start + rotation * Vector3.zero;
             Vector3 endCenter = end + rotation * Vector3.zero;
 
-            startCenter = cylinderIndex > 0 && canMakeCorner ? startCenter - (-directionToEnd * distance) : startCenter;
-            endCenter = cylinderIndex < cylinderMaxCount - 2 && canMakeCorner ? endCenter - directionToEnd * distance : endCenter;
+            //startCenter = cylinderIndex > 0 && canMakeCorner ? startCenter - (-directionToEnd * distance) : startCenter;
+            //endCenter = cylinderIndex < cylinderMaxCount - 2 && canMakeCorner ? endCenter - directionToEnd * distance : endCenter;
             List<int> startSegmentVericesIndex = new();
             List<int> endSegmentVericesIndex = new();
 
@@ -246,17 +258,15 @@ namespace LineRenderer3D
                 endSegmentVericesIndex.Add(current + 1);
             }
 
-            SegmentInfo segmentInfo = new()
+            SegmentInfo segmentInfo = new(transform.TransformPoint(startCenter), transform.TransformPoint(endCenter))
             {
-                startSegmentCenter = transform.TransformPoint(startCenter),
-                endSegmentCenter = transform.TransformPoint(endCenter),
                 startSegmentVericesIndex = startSegmentVericesIndex,
                 endSegmentVericesIndex = endSegmentVericesIndex,
             };
             return segmentInfo;
         }
 
-        bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < segmentInfos.Count;
+        internal bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < segmentInfos.Count;
 
         void Update()
         {
@@ -307,10 +317,16 @@ namespace LineRenderer3D
                     Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), vertexGizmosSize);
                     for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
                         Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
+
                     Gizmos.color = Color.magenta;
                     Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), vertexGizmosSize + vertexGizmosSize / 2);
                     for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
                         Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
+
+                    Gizmos.color = Color.blue;
+                    Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * vertexGizmosSize);
+                    Gizmos.color = Color.white;
+                    Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initEndSegmentCenter), Vector3.one * vertexGizmosSize);
                 }
 
                     

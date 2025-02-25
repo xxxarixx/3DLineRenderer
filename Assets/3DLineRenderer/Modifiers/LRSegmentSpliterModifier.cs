@@ -22,13 +22,18 @@ namespace LineRenderer3D
         [SerializeField]
         Vector3 offset;
 
-        public void ManipulateMesh(LRCylinder3D lr, List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+        
+
+        public void ManipulateMesh(LRCylinder3D lr, ref List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
+            textureSize = Mathf.Clamp(textureSize, 0.1f, 10f);
             splitedCenter = new();
             splitedCircle = new();
 
             int numberOfFaces = lr.numberOfFaces;
             int cylinderIndex = lr.points.Count - 1;
+
+            bool flipUV = true;
 
             for (int i = 0; i < segmentInfos.Count; i++)
             {
@@ -54,14 +59,13 @@ namespace LineRenderer3D
                     var segmentInfo = lr.GenerateSegmentInfo(start: transform.InverseTransformPoint(offset + startHalfwayCenter), 
                                                              end: transform.InverseTransformPoint(offset + endCenter), 
                                                              cylinderIndex: cylinderIndex,
-                                                             cylinderMaxCount: segmentInfos.Count,
-                                                             canMakeCorner: false);
+                                                             cylinderMaxCount: segmentInfos.Count);
                     segmentInfos.Insert(i + 1,segmentInfo);
+                    Debug.Log($"inserted into index {i + 1}");
                     lr.GenerateCylinder(start:transform.InverseTransformPoint(offset + startHalfwayCenter), 
                                         end:transform.InverseTransformPoint(offset + endCenter), 
                                         cylinderIndex: cylinderIndex,
-                                        canMakeCorner: false,
-                                        flipUV: false);
+                                        flipUV: flipUV = !flipUV);
                     cylinderIndex++;
                     i--;
                 }
