@@ -123,9 +123,11 @@ namespace LineRenderer3D
             //Setup segments info
             for (int s = 0; s < points.Count - 1; s++)
             {
-                var segment = GenerateSegmentInfo(start: transform.InverseTransformPoint(points[s]), 
-                                                  end: transform.InverseTransformPoint(points[s + 1]), 
-                                                  cylinderIndex: s);
+                var segment = GenerateSegmentInfo(start: transform.InverseTransformPoint(points[s]),
+                                                  end: transform.InverseTransformPoint(points[s + 1]),
+                                                  cylinderIndex: s,
+                                                  cylinderMaxCount: points.Count,
+                                                  canMakeCorner: true);
                 if (segment == null)
                     continue;
                 segmentInfos.Add(segment);
@@ -177,8 +179,8 @@ namespace LineRenderer3D
                 Vector3 endVert = end + rotation * circleOffset;
                 Vector3 directionToEnd = (endVert - startVert).normalized;
 
-                startVert = AreCylindersFormingCorner(cylinderIndex, cylinderIndex + 1) ? startVert - (-directionToEnd * distance) : startVert;
-                endVert = AreCylindersFormingCorner(cylinderIndex, cylinderIndex + 1) ? endVert - directionToEnd * distance : endVert;
+                startVert = cylinderIndex > 0 && canMakeCorner ? startVert - (-directionToEnd * distance) : startVert;
+                endVert = cylinderIndex < segmentInfos.Count - 1 && canMakeCorner ? endVert - directionToEnd * distance : endVert;
 
 
                 vertices.Add(startVert);
@@ -192,13 +194,13 @@ namespace LineRenderer3D
                 // UV mapping
                 if(f > numberOfFaces / 2)
                 {
-                    uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV?1:0));
-                    uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV?0:1));
+                    uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
+                    uv.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
                 }
                 else
                 {
-                    uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV?1:0));
-                    uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV?0:1));
+                    uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
+                    uv.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
                 }
             }
 
@@ -220,8 +222,8 @@ namespace LineRenderer3D
             }
         }
 
-        
-        internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex)
+
+        internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex, int cylinderMaxCount, bool canMakeCorner)
         {
             Vector3 direction = (end - start).normalized;
             if (direction == Vector3.zero) return null;
@@ -230,9 +232,9 @@ namespace LineRenderer3D
             Vector3 directionToEnd = (end - start).normalized;
             Vector3 startCenter = start + rotation * Vector3.zero;
             Vector3 endCenter = end + rotation * Vector3.zero;
-            
-            startCenter = AreCylindersFormingCorner(cylinderIndex, cylinderIndex + 1) ? startCenter - (-directionToEnd * distance) : startCenter;
-            endCenter = AreCylindersFormingCorner(cylinderIndex, cylinderIndex + 1) ? endCenter - directionToEnd * distance : endCenter;
+
+            startCenter = cylinderIndex > 0 && canMakeCorner ? startCenter - (-directionToEnd * distance) : startCenter;
+            endCenter = cylinderIndex < cylinderMaxCount - 2 && canMakeCorner ? endCenter - directionToEnd * distance : endCenter;
             List<int> startSegmentVericesIndex = new();
             List<int> endSegmentVericesIndex = new();
 
@@ -254,20 +256,13 @@ namespace LineRenderer3D
             return segmentInfo;
         }
 
-        bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < segmentInfos.Count - 1;
+        bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < segmentInfos.Count;
 
-        bool AreCylindersFormingCorner(int cylinderIndexA, int cylinderIndexB, float tolerance = 0.0001f)
+        bool ArePointsFormingCorner(Vector3 a, Vector3 b, Vector3 c, float tolerance = 0.0001f)
         {
-            Vector3? a = IsCylinderIndexValid(cylinderIndexA)? segmentInfos[cylinderIndexA].startSegmentCenter : null;
-            Vector3? b = IsCylinderIndexValid(cylinderIndexA)? segmentInfos[cylinderIndexA].endSegmentCenter : null;
-            Vector3? c = IsCylinderIndexValid(cylinderIndexB)? segmentInfos[cylinderIndexB].startSegmentCenter : null;
-
-            if (!a.HasValue || !b.HasValue || !c.HasValue)
-                return true;
-
             // Calculate vectors AB i AC
-            Vector3 ab = b.Value - a.Value;
-            Vector3 ac = c.Value - a.Value;
+            Vector3 ab = b - a;
+            Vector3 ac = c - a;
 
             // Calculate vector product
             Vector3 crossProduct = Vector3.Cross(ab, ac);

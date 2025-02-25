@@ -49,15 +49,17 @@ namespace LineRenderer3D
                         segment.endSegmentCenter = startHalfwayCenter;
                         splitedCircle.Add(halfWayVertice);
                     }
+                    var segmentInfo = lr.GenerateSegmentInfo(start: transform.InverseTransformPoint(offset + startHalfwayCenter), 
+                                                             end: transform.InverseTransformPoint(offset + endCenter), 
+                                                             cylinderIndex: cylinderIndex,
+                                                             cylinderMaxCount: segmentInfos.Count,
+                                                             canMakeCorner: false);
+                    segmentInfos.Add(segmentInfo);
                     lr.GenerateCylinder(start:transform.InverseTransformPoint(offset + startHalfwayCenter), 
                                         end:transform.InverseTransformPoint(offset + endCenter), 
                                         cylinderIndex: cylinderIndex,
                                         canMakeCorner: false,
                                         flipUV: false);
-                    var segmentInfo = lr.GenerateSegmentInfo(start: transform.InverseTransformPoint(offset + startHalfwayCenter), 
-                                                             end: transform.InverseTransformPoint(offset + endCenter), 
-                                                             cylinderIndex: cylinderIndex);
-                    segmentInfos.Add(segmentInfo);
                     cylinderIndex++;
                     i--;
                 }
