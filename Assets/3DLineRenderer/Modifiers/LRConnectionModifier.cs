@@ -107,7 +107,6 @@ namespace LineRenderer3D.Modifiers
                         uvs.Add(new Vector2(2f - ((float)f / numberOfFaces) * 2f, 1 - t));
                     else
                         uvs.Add(new Vector2(((float)f / numberOfFaces) * 2f, 1 - t));
-                    //uvs.Add(new Vector2((float)f / numberOfFaces, 1 - t));
                 }
             }
 

@@ -312,7 +312,11 @@ namespace LineRenderer3D
         }
         void DebugGizmoses()
         {
-            
+            Gizmos.color = Color.red;
+            if (visualizeAllVertices)
+                foreach (var vertice in vertices)
+                    Gizmos.DrawSphere(transform.TransformPoint(vertice), vertexGizmosSize);
+
             for (int p = 0; p < pointsDebug.Count; p++)
             {
                 var debugGizmos = pointsDebug[p];
@@ -352,9 +356,7 @@ namespace LineRenderer3D
                         Gizmos.DrawSphere(pos, vertexGizmosSize);
                     } 
                 }
-                if(visualizeAllVertices)
-                    foreach (var vertice in vertices)
-                        Gizmos.DrawSphere(transform.TransformPoint(vertice), vertexGizmosSize);
+                
                 if (visualizeSegmentsInfo)
                 {
                     Gizmos.color = Color.yellow;
