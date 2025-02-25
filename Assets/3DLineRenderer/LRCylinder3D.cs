@@ -43,6 +43,9 @@ namespace LineRenderer3D
         bool regenerateBasedOnCurrentValues;
 
         [SerializeField]
+        bool visualizeAllVertices;
+
+        [SerializeField]
         float vertexGizmosSize = 0.1f;
 
         [Flags]
@@ -233,10 +236,35 @@ namespace LineRenderer3D
             }
         }
 
-        internal void ChangeSegmentVerticesLocation(List<int> verticeIndexes, Vector3 translation)
+        internal void ChangeSegmentVerticesLocation(List<int> verticeIndexes, Vector3 translation, int segmentID, bool isStart, bool shouldUpdateUV)
         {
             foreach (int index in verticeIndexes)
                 vertices[index] += translation;
+            if(shouldUpdateUV)
+                UpdateUVForVertices(verticeIndexes, segmentID, isStart);
+        }
+
+        internal void UpdateUVForVertices(List<int> verticeIndexes, int segmentID, bool isStart)
+        {
+            for (int i = 0; i < verticeIndexes.Count; i++)
+            {
+                int vertexIndex = verticeIndexes[i];
+                int faceIndex = i % numberOfFaces;
+
+                // Calc new UV based on segment and position
+                float u = CalculateU(faceIndex, numberOfFaces);
+                float v = isStart ? 0f : 1.5f;
+
+                uv[vertexIndex] = new Vector2(u, v);
+            }
+        }
+
+        float CalculateU(int faceIndex, int numberOfFaces)
+        {
+            if (faceIndex > numberOfFaces / 2)
+                return 2f - ((float)faceIndex / numberOfFaces) * 2f;
+            else
+                return ((float)faceIndex / numberOfFaces) * 2f;
         }
 
         internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex, int cylinderMaxCount)
@@ -245,12 +273,9 @@ namespace LineRenderer3D
             if (direction == Vector3.zero) return null;
 
             Quaternion rotation = Quaternion.LookRotation(direction);
-            Vector3 directionToEnd = (end - start).normalized;
             Vector3 startCenter = start + rotation * Vector3.zero;
             Vector3 endCenter = end + rotation * Vector3.zero;
 
-            //startCenter = cylinderIndex > 0 && canMakeCorner ? startCenter - (-directionToEnd * distance) : startCenter;
-            //endCenter = cylinderIndex < cylinderMaxCount - 2 && canMakeCorner ? endCenter - directionToEnd * distance : endCenter;
             List<int> startSegmentVericesIndex = new();
             List<int> endSegmentVericesIndex = new();
 

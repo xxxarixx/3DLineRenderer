@@ -184,7 +184,7 @@ namespace LineRenderer3D.Modifiers
 
                 // Move start vertices towards segment center
                 segment.startSegmentCenter += startTranslation;
-                lr.ChangeSegmentVerticesLocation(segment.startSegmentVericesIndex, startTranslation);
+                lr.ChangeSegmentVerticesLocation(segment.startSegmentVericesIndex, startTranslation, segmentID, isStart:true, shouldUpdateUV:true);
                 hasCorner = true;
             }
 
@@ -195,7 +195,7 @@ namespace LineRenderer3D.Modifiers
 
                 // Move end vertices towards segment center
                 segment.endSegmentCenter += endTranslation;
-                lr.ChangeSegmentVerticesLocation(segment.endSegmentVericesIndex, endTranslation);
+                lr.ChangeSegmentVerticesLocation(segment.endSegmentVericesIndex, endTranslation, segmentID, isStart: false, shouldUpdateUV: false);
                 //hasCorner = true;
             }
         }
