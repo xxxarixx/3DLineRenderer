@@ -24,8 +24,10 @@ namespace LineRenderer3D
         {
             splitedCenter = new();
             splitedCircle = new();
+
             int numberOfFaces = lr.numberOfFaces;
             int cylinderIndex = lr.points.Count - 1;
+
             for (int i = 0; i < segmentInfos.Count; i++)
             {
                 LRCylinder3D.SegmentInfo segment = segmentInfos[i];
@@ -49,12 +51,12 @@ namespace LineRenderer3D
                     }
                     lr.GenerateCylinder(start:transform.InverseTransformPoint(offset + startHalfwayCenter), 
                                         end:transform.InverseTransformPoint(offset + endCenter), 
-                                        cylinderIndex:cylinderIndex,
-                                        canMakeCorner:false);
+                                        cylinderIndex: cylinderIndex,
+                                        canMakeCorner: false,
+                                        flipUV: false);
                     var segmentInfo = lr.GenerateSegmentInfo(start: transform.InverseTransformPoint(offset + startHalfwayCenter), 
                                                              end: transform.InverseTransformPoint(offset + endCenter), 
-                                                             cylinderIndex: cylinderIndex,
-                                                             canMakeCorner: false);
+                                                             cylinderIndex: cylinderIndex);
                     segmentInfos.Add(segmentInfo);
                     cylinderIndex++;
                     i--;
@@ -65,6 +67,10 @@ namespace LineRenderer3D
 
         void OnDrawGizmos()
         {
+            if (!IsEnabled)
+                return;
+
+
             Gizmos.color = Color.yellow;
             foreach (var item in splitedCenter)
                 Gizmos.DrawWireSphere(item, gizmosSize);
