@@ -300,6 +300,53 @@ namespace LineRenderer3D
                 bool visualizeNormals = (debugGizmos & DebugGizmos.Normals) != 0;
                 bool visualizeSegmentsInfo = (debugGizmos & DebugGizmos.SegmentsInfo) != 0;
                 bool visualizeUV = (debugGizmos & DebugGizmos.UV) != 0;
+
+                if (visualizeNormals)
+                {
+                    Gizmos.color = Color.blue;
+                    for (int i = 0; i < normals.Count; i++)
+                    {
+                        Vector3 normal = normals[i];
+                        Vector3 verice = transform.TransformPoint(vertices[i]);
+                        Gizmos.DrawRay(verice, normal);
+                    }
+                }
+                Gizmos.color = Color.red;
+                if(visualizeVertices)
+                {
+                    for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
+                    {
+                        var index = segmentInfo.startSegmentVericesIndex[i];
+                        Vector3 pos = transform.TransformPoint(vertices[index]);
+                        Gizmos.DrawSphere(pos, vertexGizmosSize);
+                    }
+                    for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
+                    {
+                        var index = segmentInfo.endSegmentVericesIndex[i];
+                        Vector3 pos = transform.TransformPoint(vertices[index]);
+                        Gizmos.DrawSphere(pos, vertexGizmosSize);
+                    } 
+                }
+                if(visualizeAllVertices)
+                    foreach (var vertice in vertices)
+                        Gizmos.DrawSphere(transform.TransformPoint(vertice), vertexGizmosSize);
+                if (visualizeSegmentsInfo)
+                {
+                    Gizmos.color = Color.yellow;
+                    Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), vertexGizmosSize);
+                    for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
+                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
+
+                    Gizmos.color = Color.magenta;
+                    Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), vertexGizmosSize + vertexGizmosSize / 2);
+                    for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
+                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
+
+                    Gizmos.color = Color.blue;
+                    Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * vertexGizmosSize);
+                    Gizmos.color = Color.white;
+                    Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initEndSegmentCenter), Vector3.one * vertexGizmosSize);
+                }
 #if UNITY_EDITOR
                 if (uv != null && visualizeUV)
                 {
@@ -317,43 +364,10 @@ namespace LineRenderer3D
                     }
                 }
 #endif
-                if (visualizeNormals)
-                {
-                    Gizmos.color = Color.blue;
-                    for (int i = 0; i < normals.Count; i++)
-                    {
-                        Vector3 normal = normals[i];
-                        Vector3 verice = transform.TransformPoint(vertices[i]);
-                        Gizmos.DrawRay(verice, normal);
-                    }
-                }
-                if(visualizeVertices)
-                {
-                    Gizmos.color = Color.red;
-                    foreach (var vertice in vertices)
-                        Gizmos.DrawSphere(transform.TransformPoint(vertice), vertexGizmosSize);
-                }
-                if(visualizeSegmentsInfo)
-                {
-                    Gizmos.color = Color.yellow;
-                    Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), vertexGizmosSize);
-                    for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
-                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
 
-                    Gizmos.color = Color.magenta;
-                    Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), vertexGizmosSize + vertexGizmosSize / 2);
-                    for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
-                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
 
-                    Gizmos.color = Color.blue;
-                    Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * vertexGizmosSize);
-                    Gizmos.color = Color.white;
-                    Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initEndSegmentCenter), Vector3.one * vertexGizmosSize);
-                }
-
-                    
             }
-            
+
         }
     }
 }
