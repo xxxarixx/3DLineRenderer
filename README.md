@@ -12,9 +12,10 @@ Before issue =======================> After solution:<br>
 Before issue =======================> After solution:<br>
 <img src="ReadmeAssets/uvIssue.png" width=250 height=250 align='left'>
 <img src="ReadmeAssets/uvIssueSolved.png" width=250 height=250> <br>
-- [ ] Make auto line spliting if single line is too big to ensure that uv is always perfecto✨<br>
+:heavy_check_mark: Make auto line spliting if single line is too big to ensure that uv is always perfecto✨<br>
 <img src="ReadmeAssets/autolineSpliting.png" width=250 height=250 align='left'>
 <img src="ReadmeAssets/autolineSplitingSolved.png" width=250 height=250> <br>
+- [ ] Make caps on the end<br>
 - [ ] First visualization demo<br>
 - [ ] Optimalisation with using Unity Jobs and Advanced Mesh API with Multi-Stream Approach, <a href="https://catlikecoding.com/unity/tutorials/procedural-meshes/creating-a-mesh/">great blog about that</a><br>
 - [ ] Release this as free simple 3D Line renderer asset avaible for everyone <br>
