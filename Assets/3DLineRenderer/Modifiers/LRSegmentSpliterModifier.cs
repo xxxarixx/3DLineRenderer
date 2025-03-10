@@ -7,6 +7,7 @@ namespace LineRenderer3D
     class LRSegmentSpliterModifier : MonoBehaviour, IModifierBase
     {
         [SerializeField]
+        [Range(0.4f, 1.3f)]
         float textureSize = 2f;
         [SerializeField]
         float gizmosSize = .1f;
@@ -18,9 +19,6 @@ namespace LineRenderer3D
 
         List<Vector3> splitedCenter = new();
         List<Vector3> splitedCircle = new();
-
-        [SerializeField]
-        Vector3 offset;
 
         
 
@@ -42,8 +40,6 @@ namespace LineRenderer3D
                 if(distance > textureSize)
                 {
                     // Split into half
-                    Debug.Log($"segment {i} should be splited cylinderIndex:{cylinderIndex}");
-                    //LRCylinder3D.SegmentInfo segmentInfo = new();
                     Vector3 startHalfwayCenter = Vector3.Lerp(segment.startSegmentCenter, segment.endSegmentCenter, 0.5f);
                     Vector3 endCenter = segment.endSegmentCenter;
                     splitedCenter.Add(startHalfwayCenter);
@@ -56,14 +52,12 @@ namespace LineRenderer3D
                         segment.endSegmentCenter = startHalfwayCenter;
                         splitedCircle.Add(halfWayVertice);
                     }
-                    var segmentInfo = lr.GenerateSegmentInfo(start: transform.InverseTransformPoint(offset + startHalfwayCenter), 
-                                                             end: transform.InverseTransformPoint(offset + endCenter), 
-                                                             cylinderIndex: cylinderIndex,
-                                                             cylinderMaxCount: segmentInfos.Count);
+                    var segmentInfo = lr.GenerateSegmentInfo(start: transform.InverseTransformPoint(startHalfwayCenter), 
+                                                             end: transform.InverseTransformPoint(endCenter), 
+                                                             cylinderIndex: cylinderIndex);
                     segmentInfos.Insert(i + 1,segmentInfo);
-                    Debug.Log($"inserted into index {i + 1}");
-                    lr.GenerateCylinder(start:transform.InverseTransformPoint(offset + startHalfwayCenter), 
-                                        end:transform.InverseTransformPoint(offset + endCenter), 
+                    lr.GenerateCylinder(start:transform.InverseTransformPoint(startHalfwayCenter), 
+                                        end:transform.InverseTransformPoint(endCenter), 
                                         cylinderIndex: cylinderIndex,
                                         flipUV: flipUV = !flipUV);
                     cylinderIndex++;

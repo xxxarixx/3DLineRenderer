@@ -64,7 +64,10 @@ namespace LineRenderer3D
         void Awake()
         {
             meshFilter = GetComponent<MeshFilter>();
-            mesh = new Mesh();
+            mesh = new Mesh() 
+            {
+                name = "3D Line renderer"
+            };
             meshFilter.mesh = mesh;
 
             UpdateLine();
@@ -80,6 +83,9 @@ namespace LineRenderer3D
         internal class SegmentInfo
         {
             [SerializeField]
+            internal readonly string uniqueId;
+
+            [SerializeField]
             internal Vector3 startSegmentCenter;
             internal readonly Vector3 initStartSegmentCenter;
             internal List<int> startSegmentVericesIndex = new();
@@ -94,6 +100,7 @@ namespace LineRenderer3D
                 initEndSegmentCenter = endSegmentCenter;
                 this.startSegmentCenter = startSegmentCenter;
                 this.endSegmentCenter = endSegmentCenter;
+                uniqueId = Guid.NewGuid().ToString();
             }
 
         }
@@ -141,8 +148,7 @@ namespace LineRenderer3D
             {
                 var segment = GenerateSegmentInfo(start: transform.InverseTransformPoint(points[s]),
                                                   end: transform.InverseTransformPoint(points[s + 1]),
-                                                  cylinderIndex: s,
-                                                  cylinderMaxCount: points.Count);
+                                                  cylinderIndex: s);
                 if (segment == null)
                     continue;
                 segmentInfos.Add(segment);
@@ -191,11 +197,6 @@ namespace LineRenderer3D
                 // Calculate positions in local space
                 Vector3 startVert = start + rotation * circleOffset;
                 Vector3 endVert = end + rotation * circleOffset;
-                Vector3 directionToEnd = (endVert - startVert).normalized;
-
-                //startVert = cylinderIndex > 0 && canMakeCorner ? startVert - (-directionToEnd * distance) : startVert;
-                //endVert = cylinderIndex < segmentInfos.Count - 1 && canMakeCorner ? endVert - directionToEnd * distance : endVert;
-
 
                 vertices.Add(startVert);
                 vertices.Add(endVert);
@@ -267,7 +268,7 @@ namespace LineRenderer3D
                 return ((float)faceIndex / numberOfFaces) * 2f;
         }
 
-        internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex, int cylinderMaxCount)
+        internal SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex)
         {
             Vector3 direction = (end - start).normalized;
             if (direction == Vector3.zero) return null;
@@ -362,12 +363,14 @@ namespace LineRenderer3D
                     Gizmos.color = Color.yellow;
                     Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), vertexGizmosSize);
                     for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
-                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
+                        if(segmentInfo.startSegmentVericesIndex[i] < vertices.Count)
+                            Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
 
                     Gizmos.color = Color.magenta;
                     Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), vertexGizmosSize + vertexGizmosSize / 2);
                     for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
-                        Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
+                        if(segmentInfo.endSegmentVericesIndex[i] < vertices.Count)
+                            Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
 
                     Gizmos.color = Color.blue;
                     Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * vertexGizmosSize);
