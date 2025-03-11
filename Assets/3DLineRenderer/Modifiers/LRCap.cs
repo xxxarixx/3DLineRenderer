@@ -84,7 +84,8 @@ namespace LineRenderer3D.Modifiers
             Vector3 direction = isStart ? (segment.startSegmentCenter - segment.endSegmentCenter).normalized :
                                          (segment.endSegmentCenter - segment.startSegmentCenter).normalized;
 
-            Quaternion rotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, 0, isStart? 90f : -90f);
+            Quaternion correctionRotation = Quaternion.Euler(0, 0, isStart ? 90f : -90f);
+            Quaternion rotation = Quaternion.LookRotation(direction) * correctionRotation;
 
             
 
@@ -114,7 +115,7 @@ namespace LineRenderer3D.Modifiers
                     Vector3 vertex = center + rotation * new Vector3(x, y, z);
                     vertices.Add(vertex);
                     normals.Add(normalize(vertex - center));
-                    uvs.Add(new Vector2((float)s / _segments, (float)ring / _rings));
+                    uvs.Add(correctionRotation * new Vector2((float)s / _segments, (float)ring / _rings));
 
                     
                     // second half of vertices
