@@ -46,6 +46,9 @@ namespace LineRenderer3D
         bool visualizeAllVertices;
 
         [SerializeField]
+        bool visualizePointsPositions;
+
+        [SerializeField]
         float vertexGizmosSize = 0.1f;
 
         [Flags]
@@ -305,9 +308,12 @@ namespace LineRenderer3D
 
         void OnDrawGizmos()
         {
-            Gizmos.color = Color.green;
-            foreach (Vector3 point in points)
-                Gizmos.DrawWireSphere(point, .1f);
+            if(visualizePointsPositions)
+            {
+                Gizmos.color = Color.green;
+                foreach (Vector3 point in points)
+                    Gizmos.DrawWireSphere(point, .1f);
+            }
 
             DebugGizmoses();
         }
@@ -364,13 +370,27 @@ namespace LineRenderer3D
                     Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), vertexGizmosSize);
                     for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
                         if(segmentInfo.startSegmentVericesIndex[i] < vertices.Count)
+                        {
                             Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
+#if UNITY_EDITOR
+                            Handles.Label(
+                                position:transform.TransformPoint(vertices[segmentInfo.startSegmentVericesIndex[i]]) + new Vector3(vertexGizmosSize / 2, 0,0), 
+                                text:$"{segmentInfo.startSegmentVericesIndex[i]}");
+#endif
+                        }
 
                     Gizmos.color = Color.magenta;
                     Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), vertexGizmosSize + vertexGizmosSize / 2);
                     for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
                         if(segmentInfo.endSegmentVericesIndex[i] < vertices.Count)
+                        {
                             Gizmos.DrawWireSphere(transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
+#if UNITY_EDITOR
+                            Handles.Label(
+                                position: transform.TransformPoint(vertices[segmentInfo.endSegmentVericesIndex[i]]) + new Vector3(vertexGizmosSize, vertexGizmosSize, 0),
+                                text: $"{segmentInfo.endSegmentVericesIndex[i]}");
+#endif
+                        }
 
                     Gizmos.color = Color.blue;
                     Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * vertexGizmosSize);

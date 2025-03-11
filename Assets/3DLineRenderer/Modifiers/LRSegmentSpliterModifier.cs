@@ -7,7 +7,7 @@ namespace LineRenderer3D
     class LRSegmentSpliterModifier : MonoBehaviour, IModifierBase
     {
         [SerializeField]
-        [Range(0.4f, 1.3f)]
+        [Range(0.5f, 1.3f)]
         float textureSize = 2f;
         [SerializeField]
         float gizmosSize = .1f;

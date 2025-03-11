@@ -100,10 +100,9 @@ namespace LineRenderer3D
             _mesh.vertices = vertices;
             _mesh.uv = uv;
             _mesh.triangles = triangles;
-            _mesh.RecalculateNormals();
+            _mesh.normals = normals;
+            _mesh.RecalculateBounds();
         }
-
-
 
         private void OnValidate()
         {
