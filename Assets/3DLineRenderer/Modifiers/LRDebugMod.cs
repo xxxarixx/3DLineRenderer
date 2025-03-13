@@ -8,6 +8,9 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+/// <summary>
+/// A modifier class for debugging line renderer data by visualizing various aspects of the mesh.
+/// </summary>
 public class LRDebugMod : MonoBehaviour, ILRModBase
 {
     public string Name => name;
@@ -15,16 +18,16 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
     public bool IsEnabled => enabled;
 
     [SerializeField]
-    List<DebugGizmos> pointsDebug = new();
+    List<DebugGizmos> _pointsDebug = new();
 
     [SerializeField]
-    bool visualizeAllVertices;
+    bool _visualizeAllVertices;
 
     [SerializeField]
-    bool visualizePointsPositions;
+    bool _visualizePointsPositions;
 
     [SerializeField]
-    float vertexGizmosSize = 0.1f;
+    float _vertexGizmosSize = 0.01f;
 
     [Flags]
     enum DebugGizmos
@@ -46,6 +49,7 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
         _triangles = triangles;
     }
 
+    // Copied veriables from modifier to visualize them in gizmos.
     List<LRData.SegmentInfo> _segmentInfos;
     List<Vector3> _vertices;
     List<Vector3> _normals;
@@ -58,7 +62,7 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
         if (!IsEnabled)
             return;
 
-        if (visualizePointsPositions)
+        if (_visualizePointsPositions)
         {
             Gizmos.color = Color.green;
             foreach (Vector3 point in _data.Points)
@@ -68,26 +72,31 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
         DebugGizmoses();
     }
 
+    /// <summary>
+    /// Visualizes various debug gizmos based on the selected options.
+    /// </summary>
     void DebugGizmoses()
     {
         Gizmos.color = Color.red;
-        if (visualizeAllVertices)
+        if (_visualizeAllVertices)
             foreach (var vertice in _vertices)
-                Gizmos.DrawSphere(transform.TransformPoint(vertice), vertexGizmosSize);
+                Gizmos.DrawSphere(transform.TransformPoint(vertice), _vertexGizmosSize);
 
-        for (int p = 0; p < pointsDebug.Count; p++)
+        for (int p = 0; p < _pointsDebug.Count; p++)
         {
-            var debugGizmos = pointsDebug[p];
+            var debugGizmos = _pointsDebug[p];
             if (debugGizmos == DebugGizmos.None)
                 continue;
             if (!_data.IsCylinderIndexValid(p))
                 continue;
+            // Options of visualization
             var segmentInfo = _segmentInfos[p];
             bool visualizeVertices = (debugGizmos & DebugGizmos.Vertices) != 0;
             bool visualizeNormals = (debugGizmos & DebugGizmos.Normals) != 0;
             bool visualizeSegmentsInfo = (debugGizmos & DebugGizmos.SegmentsInfo) != 0;
             bool visualizeUV = (debugGizmos & DebugGizmos.UV) != 0;
 
+            // Visualize normals
             if (visualizeNormals)
             {
                 Gizmos.color = Color.blue;
@@ -98,56 +107,64 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
                     Gizmos.DrawRay(verice, normal);
                 }
             }
-            Gizmos.color = Color.red;
+
+            // Visualize vertices
             if (visualizeVertices)
             {
+                Gizmos.color = Color.red;
                 for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
                 {
                     var index = segmentInfo.startSegmentVericesIndex[i];
                     Vector3 pos = transform.TransformPoint(_vertices[index]);
-                    Gizmos.DrawSphere(pos, vertexGizmosSize);
+                    Gizmos.DrawSphere(pos, _vertexGizmosSize);
                 }
                 for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
                 {
                     var index = segmentInfo.endSegmentVericesIndex[i];
                     Vector3 pos = transform.TransformPoint(_vertices[index]);
-                    Gizmos.DrawSphere(pos, vertexGizmosSize);
+                    Gizmos.DrawSphere(pos, _vertexGizmosSize);
                 }
             }
 
+            // Visualize segments info
             if (visualizeSegmentsInfo)
             {
+                // Visualize start segment vertices and center
                 Gizmos.color = Color.yellow;
-                Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), vertexGizmosSize);
+                Gizmos.DrawWireSphere((segmentInfo.startSegmentCenter), _vertexGizmosSize);
                 for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
                     if (segmentInfo.startSegmentVericesIndex[i] < _vertices.Count)
                     {
-                        Gizmos.DrawWireSphere(transform.TransformPoint(_vertices[segmentInfo.startSegmentVericesIndex[i]]), vertexGizmosSize / 2);
+                        Gizmos.DrawWireSphere(transform.TransformPoint(_vertices[segmentInfo.startSegmentVericesIndex[i]]), _vertexGizmosSize / 2);
 #if UNITY_EDITOR
                             Handles.Label(
-                                position:transform.TransformPoint(_vertices[segmentInfo.startSegmentVericesIndex[i]]) + new Vector3(vertexGizmosSize / 2, 0,0), 
+                                position:transform.TransformPoint(_vertices[segmentInfo.startSegmentVericesIndex[i]]) + new Vector3(_vertexGizmosSize / 2, 0,0), 
                                 text:$"{segmentInfo.startSegmentVericesIndex[i]}");
 #endif
                     }
 
+                // Visualize end segment vertices and center
                 Gizmos.color = Color.magenta;
-                Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), vertexGizmosSize + vertexGizmosSize / 2);
+                Gizmos.DrawWireSphere((segmentInfo.endSegmentCenter), _vertexGizmosSize + _vertexGizmosSize / 2);
                 for (int i = 0; i < segmentInfo.endSegmentVericesIndex.Count; i++)
                     if (segmentInfo.endSegmentVericesIndex[i] < _vertices.Count)
                     {
-                        Gizmos.DrawWireSphere(transform.TransformPoint(_vertices[segmentInfo.endSegmentVericesIndex[i]]), vertexGizmosSize);
+                        Gizmos.DrawWireSphere(transform.TransformPoint(_vertices[segmentInfo.endSegmentVericesIndex[i]]), _vertexGizmosSize);
 #if UNITY_EDITOR
                             Handles.Label(
-                                position: transform.TransformPoint(_vertices[segmentInfo.endSegmentVericesIndex[i]]) + new Vector3(vertexGizmosSize, vertexGizmosSize, 0),
+                                position: transform.TransformPoint(_vertices[segmentInfo.endSegmentVericesIndex[i]]) + new Vector3(_vertexGizmosSize, _vertexGizmosSize, 0),
                                 text: $"{segmentInfo.endSegmentVericesIndex[i]}");
 #endif
                     }
 
+                // Visualize initial start and end segment center
                 Gizmos.color = Color.blue;
-                Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * vertexGizmosSize);
+                Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * _vertexGizmosSize);
                 Gizmos.color = Color.white;
-                Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initEndSegmentCenter), Vector3.one * vertexGizmosSize);
+                Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initEndSegmentCenter), Vector3.one * _vertexGizmosSize);
             }
+
+            // Visualize Uvs
 #if UNITY_EDITOR
                 if (_uvs != null && visualizeUV)
                 {

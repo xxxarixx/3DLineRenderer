@@ -6,55 +6,98 @@ using static Unity.Mathematics.math;
 
 namespace LineRenderer3D.Mods
 {
+    /// <summary>
+    /// Modifies the connection between segments by adding a curve between them.
+    /// </summary>
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
-        [SerializeField] bool visualizeControlPoints;
-        [SerializeField] bool visualizeConnectionPoints;
-        [SerializeField] bool visualizeDirections;
-        [SerializeField][Range(-2f, 2f)] float distanceControlPointMultiplayer;
-        [SerializeField] float vertexGizmosSize = 0.1f;
-        [SerializeField] int pointsPerCurve = 5;
-        [SerializeField] float distance = 1f;
+        [SerializeField] 
+        [Range(-2f, 2f)] 
+        float _distanceControlPointMultiplayer;
+
+        [SerializeField]
+        [Tooltip("More means better quality but in cost of performance. ")]
+        int _pointsPerCurve = 5;
+
+        [SerializeField]
+        [Tooltip("Adjusts the distance of the segment corners to create space for a smooth transition between segments.")]
+        float _distance = 1f;
+
+        [Header("Debug stuff")]
+
+        [SerializeField] 
+        bool _visualizeControlPoints;
+
+        [SerializeField] 
+        bool _visualizeConnectionPoints;
+
+        [SerializeField] 
+        bool _visualizeDirections;
+
+        [SerializeField] 
+        float _vertexGizmosSize = 0.1f;
 
         readonly List<Vector3> helpControlPoints = new();
+
         readonly List<Vector3> connectionPoints = new();
 
         public string Name => ToString();
 
         public bool IsEnabled => enabled;
 
+        void OnDrawGizmos()
+        {
+            Gizmos.color = Color.cyan;
+            if (_visualizeControlPoints)
+                foreach (var point in helpControlPoints)
+                    Gizmos.DrawSphere(point, _vertexGizmosSize);
+
+            Gizmos.color = Color.yellow;
+            if (_visualizeConnectionPoints)
+                foreach (var point in connectionPoints)
+                    Gizmos.DrawWireSphere(point, _vertexGizmosSize / 2);
+        }
+
         public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
             if(segmentInfos.Count < 2)
                 return;
 
+            // Prepare lists to new LR
             helpControlPoints.Clear();
             connectionPoints.Clear();
-            pointsPerCurve = Mathf.Clamp(pointsPerCurve, 2, pointsPerCurve);
-
-            int numberOfFaces = data.NumberOfFaces;
-            float radius = data.Radius;
+            _pointsPerCurve = Mathf.Clamp(_pointsPerCurve, 2, _pointsPerCurve);
 
             for (int s = 0; s < segmentInfos.Count; s++)
             {
                 // Change current segments to make distance for corner
-                MakeDistanceForCorner(data, s, ref segmentInfos, out bool hasCorner);
+                MakeDistanceForCorner(segmentID: s, data, ref vertices, ref segmentInfos, out bool hasCorner);
+
 
                 if (!hasCorner || s == 0)
                     continue;
 
-                CreateConnections(s, numberOfFaces, radius, data, segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
+                CreateConnections(segmentIndex: s, data, segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
             }
         }
 
-        void CreateConnections(int segmentIndex, int numberOfFaces, float radius, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+        /// <summary>
+        /// Creates connections between segments by generating vertices, normals, UVs, and triangles.
+        /// </summary>
+        /// <param name="segmentIndex">The index of the current segment.</param>
+        void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            var currentSegment = segmentInfos[segmentIndex];
-            var previousSegment = segmentInfos[segmentIndex - 1];
+            SegmentInfo currentSegment = segmentInfos[segmentIndex];
+            SegmentInfo previousSegment = segmentInfos[segmentIndex - 1];
 
+            int numberOfFaces = data.NumberOfFaces;
+            float radius = data.Radius;
+
+            // A => Previous Point, B => Current Point, C => Next Point
             Vector3 A = Vector3.zero;
             Vector3 B = Vector3.zero;
             Vector3 C = Vector3.zero;
+
             if (data.Points.Count > segmentInfos.Count)
             {
                 A = data.Points[segmentIndex - 1];
@@ -77,15 +120,15 @@ namespace LineRenderer3D.Mods
             Vector3 prevEndCenter = previousSegment.endSegmentCenter;
             Vector3 currStartCenter = currentSegment.startSegmentCenter;
 
-            Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (distance * distanceControlPointMultiplayer);
+            Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (_distance * _distanceControlPointMultiplayer);
             helpControlPoints.Add(helpControlPoint);
 
             int initialVerticesCount = vertices.Count;
 
             // Generate vertices for the connection curve
-            for (int p = 1; p < pointsPerCurve; p++)
+            for (int p = 1; p < _pointsPerCurve; p++)
             {
-                float t = p / (float)(pointsPerCurve - 1);
+                float t = p / (float)(_pointsPerCurve - 1);
                 Vector3 centralPoint = QuadraticBezier(prevEndCenter, helpControlPoint, currStartCenter, t);
                 Vector3 tangent = QuadraticBezierDerivative(prevEndCenter, helpControlPoint, currStartCenter, t).normalized;
                 Quaternion rotation = Quaternion.LookRotation(tangent);
@@ -117,7 +160,7 @@ namespace LineRenderer3D.Mods
             {
                 int nextI = (i + 1) % numberOfFaces;
 
-                for (int p = 0; p < pointsPerCurve - 1; p++)
+                for (int p = 0; p < _pointsPerCurve - 1; p++)
                 {
                     int currentP = p;
                     int nextP = p + 1;
@@ -142,7 +185,10 @@ namespace LineRenderer3D.Mods
             }
         }
 
-        void MakeDistanceForCorner(LRData data, int segmentID, ref List<SegmentInfo> segmentInfos, out bool hasCorner)
+        /// <summary>
+        /// Adjusts the vertices of the segment to create space for a corner.
+        /// </summary>
+        void MakeDistanceForCorner(int segmentID, LRData data, ref List<Vector3> vertices, ref List<SegmentInfo> segmentInfos, out bool hasCorner)
         {
             hasCorner = false;
             if (!data.IsCylinderIndexValid(segmentID)) return;
@@ -181,26 +227,35 @@ namespace LineRenderer3D.Mods
             if (startHasCorner)
             {
                 Vector3 startDirection = (segment.endSegmentCenter - segment.startSegmentCenter).normalized;
-                Vector3 startTranslation = startDirection * distance;
+                Vector3 startTranslation = startDirection * _distance;
 
                 // Move start vertices towards segment center
                 segment.startSegmentCenter += startTranslation;
-                data.ChangeSegmentVerticesLocation(segment.startSegmentVericesIndex, startTranslation, segmentID, isStart:true, shouldUpdateUV:true);
+
+                // Change segment vertices location by translation
+                foreach (int index in segment.startSegmentVericesIndex)
+                    vertices[index] += startTranslation;
+
                 hasCorner = true;
             }
 
             if (endHasCorner)
             {
                 Vector3 endDirection = (segment.startSegmentCenter - segment.endSegmentCenter).normalized;
-                Vector3 endTranslation = endDirection * distance;
+                Vector3 endTranslation = endDirection * _distance;
 
                 // Move end vertices towards segment center
                 segment.endSegmentCenter += endTranslation;
-                data.ChangeSegmentVerticesLocation(segment.endSegmentVericesIndex, endTranslation, segmentID, isStart: false, shouldUpdateUV: false);
-                //hasCorner = true;
+
+                // Change segment vertices location by translation
+                foreach (int index in segment.endSegmentVericesIndex)
+                    vertices[index] += endTranslation;
             }
         }
 
+        /// <summary>
+        /// Determines if three points form a corner based on the cross product of their vectors.
+        /// </summary>
         bool ArePointsFormingCorner(Vector3 a, Vector3 b, Vector3 c, float tolerance = 0.0001f)
         {
             Vector3 ab = b - a;
@@ -213,38 +268,36 @@ namespace LineRenderer3D.Mods
             return crossProduct.sqrMagnitude > tolerance * tolerance;
         }
 
+        /// <summary>
+        /// Gets the index of a vertex in a ring of vertices, used for generating triangles.
+        /// </summary>
         int GetRingIndex(SegmentInfo prevSeg, SegmentInfo currSeg, int initialVertices, int faces, int faceIndex, int ring)
         {
             if (ring == 0) // Previous segment's end
                 return prevSeg.endSegmentVericesIndex[faceIndex];
 
-            if (ring == pointsPerCurve - 1) // Current segment's start
+            if (ring == _pointsPerCurve - 1) // Current segment's start
                 return currSeg.startSegmentVericesIndex[faceIndex];
 
             // New connection vertices: initialVertices + (ring-1)*faces + faceIndex
             return initialVertices + (ring - 1) * faces + faceIndex;
         }
 
+        /// <param name="t">Interpolation parameter (0 to 1).</param>
+        /// <returns>The point on the Bezier curve.</returns>
         Vector3 QuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
         {
+            t = Mathf.Clamp01(t);
             float u = 1 - t;
             return (u * u) * p0 + (2 * u * t) * p1 + (t * t) * p2;
         }
 
-        Vector3 QuadraticBezierDerivative(Vector3 p0, Vector3 p1, Vector3 p2, float t) =>
-            2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
-
-        void OnDrawGizmos()
+        /// <param name="t">Interpolation parameter (0 to 1).</param>
+        /// <returns>The derivative of the Bezier curve.</returns>
+        Vector3 QuadraticBezierDerivative(Vector3 p0, Vector3 p1, Vector3 p2, float t)
         {
-            Gizmos.color = Color.cyan;
-            if (visualizeControlPoints)
-                foreach (var point in helpControlPoints)
-                    Gizmos.DrawSphere(point, vertexGizmosSize);
-
-            Gizmos.color = Color.yellow;
-            if (visualizeConnectionPoints)
-                foreach (var point in connectionPoints)
-                    Gizmos.DrawWireSphere(point, vertexGizmosSize / 2);
+            t = Mathf.Clamp01(t);
+            return 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
         }
     }
 }

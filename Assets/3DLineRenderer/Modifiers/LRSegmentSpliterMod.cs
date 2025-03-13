@@ -6,6 +6,9 @@ using static LineRenderer3D.Datas.LRData;
 
 namespace LineRenderer3D
 {
+    /// <summary>
+    /// Splits the segments into half if the distance between the start and end points is greater than the texture size.
+    /// </summary>
     class LRSegmentSpliterModifier : MonoBehaviour, ILRModBase
     {
         [SerializeField]
@@ -28,6 +31,7 @@ namespace LineRenderer3D
 
         public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
+            // Setup veriables for new LR data.
             textureSize = Mathf.Clamp(textureSize, 0.1f, 10f);
             splitedCenter = new();
             splitedCircle = new();
@@ -56,6 +60,7 @@ namespace LineRenderer3D
                         segment.endSegmentCenter = startHalfwayCenter;
                         splitedCircle.Add(halfWayVertice);
                     }
+                    // Generate new cylinder and his data
                     var segmentInfo = data.GenerateSegmentInfo(start: transform.InverseTransformPoint(startHalfwayCenter), 
                                                              end: transform.InverseTransformPoint(endCenter), 
                                                              cylinderIndex: cylinderIndex);

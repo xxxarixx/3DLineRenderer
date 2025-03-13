@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace LineRenderer3D.Datas
 {
+    /// <summary>
+    /// Before using this class, you need to call Setup method!
+    /// </summary>
     [Serializable]
     public class LRData
     {
@@ -31,6 +34,9 @@ namespace LineRenderer3D.Datas
         [SerializeField]
         float _radius = 0.1f;
 
+        /// <summary>
+        /// The radius of the cylinder segments.
+        /// </summary>
         public float Radius 
         { 
             get 
@@ -58,30 +64,38 @@ namespace LineRenderer3D.Datas
         [SerializeField]
         List<int> _triangles;
 
+        /// <summary>
+        /// Contains valuable information about cylinder segment, like start and end center, and vertices index of start or end.
+        /// </summary>
         [Serializable]
         public class SegmentInfo
         {
-            [SerializeField]
             public readonly string uniqueId;
 
-            [SerializeField]
+            [Header("Start veriables")]
             public Vector3 startSegmentCenter;
+
             public readonly Vector3 initStartSegmentCenter;
+
             public List<int> startSegmentVericesIndex = new();
-            [SerializeField]
+
+            [Header("End veriables")]
             public Vector3 endSegmentCenter;
+
             public readonly Vector3 initEndSegmentCenter;
+
             public List<int> endSegmentVericesIndex = new();
 
             public SegmentInfo(Vector3 startSegmentCenter, Vector3 endSegmentCenter)
             {
                 initStartSegmentCenter = startSegmentCenter;
                 initEndSegmentCenter = endSegmentCenter;
+
                 this.startSegmentCenter = startSegmentCenter;
                 this.endSegmentCenter = endSegmentCenter;
+
                 uniqueId = Guid.NewGuid().ToString();
             }
-
         }
 
         public void Setup(Transform lrTransform)
@@ -94,29 +108,7 @@ namespace LineRenderer3D.Datas
             _triangles = new();
         }
 
-        public void ChangeSegmentVerticesLocation(List<int> verticeIndexes, Vector3 translation, int segmentID, bool isStart, bool shouldUpdateUV)
-        {
-            foreach (int index in verticeIndexes)
-                _vertices[index] += translation;
-
-            if (shouldUpdateUV)
-                UpdateUVForVertices(verticeIndexes, segmentID, isStart);
-        }
-
-        public void UpdateUVForVertices(List<int> verticeIndexes, int segmentID, bool isStart)
-        {
-            for (int i = 0; i < verticeIndexes.Count; i++)
-            {
-                int vertexIndex = verticeIndexes[i];
-                int faceIndex = i % NumberOfFaces;
-
-                // Calc new UV based on segment and position
-                float u = CalculateU(faceIndex, NumberOfFaces);
-                float v = isStart ? 0f : 1.5f;
-
-                _uvs[vertexIndex] = new Vector2(u, v);
-            }
-        }
+        #region Data Manipulation
 
         public SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex)
         {
@@ -146,16 +138,14 @@ namespace LineRenderer3D.Datas
             return segmentInfo;
         }
 
-        float CalculateU(int faceIndex, int numberOfFaces)
-        {
-            if (faceIndex > numberOfFaces / 2)
-                return 2f - ((float)faceIndex / numberOfFaces) * 2f;
-            else
-                return ((float)faceIndex / numberOfFaces) * 2f;
-        }
-
         public bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < _segmentInfos.Count;
 
+
+        /// <summary>
+        /// Generates a cylinder between two points and adds it to the mesh data.
+        /// </summary>
+        /// <param name="cylinderIndex">The index of the cylinder, you must specify, in most cases it will be just segmentInfos.Count.</param>
+        /// <param name="flipUV">Whether to flip the UV coordinates.</param>
         public void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool flipUV)
         {
             Vector3 direction = (end - start).normalized;
@@ -217,10 +207,16 @@ namespace LineRenderer3D.Datas
             }
         }
 
-        public Vector3 GetVertice(int index) => _vertices[index];
+        public Vector3 GetVertex(int index) => _vertices[index];
 
-        public void AddSegmentInfo(SegmentInfo segmentInfo) => _segmentInfos.Add(segmentInfo);    
+        /// <summary>
+        /// Adds a SegmentInfo object to the list of segment information.
+        /// </summary>
+        public void AddSegmentInfo(SegmentInfo segmentInfo) => _segmentInfos.Add(segmentInfo);
 
+        /// <summary>
+        /// Applies the mesh data to the given mesh.
+        /// </summary>
         public void ApplayDataToMesh(ref Mesh mesh)
         {
             mesh.Clear();
@@ -239,5 +235,7 @@ namespace LineRenderer3D.Datas
             uvs = _uvs;
             triangles = _triangles;
         }
+        
+        #endregion
     }
 }

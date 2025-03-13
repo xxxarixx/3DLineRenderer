@@ -11,6 +11,9 @@ using UnityEditor;
 
 namespace LineRenderer3D.Mods
 {
+    /// <summary>
+    /// A modifier class for capping the ends of the line renderer with different shapes.
+    /// </summary>
     class LRCap : MonoBehaviour, ILRModBase
     {
         [SerializeField]
@@ -280,7 +283,7 @@ namespace LineRenderer3D.Mods
                 case CapTypes.round:
                     for (int i = 0; i < ringEdgeIndexes.Count; i++)
                     {
-                        Vector3 item = data.GetVertice(ringEdgeIndexes[i]);
+                        Vector3 item = data.GetVertex(ringEdgeIndexes[i]);
                         Gizmos.color = Color.black;
 #if UNITY_EDITOR
                         Handles.Label(item + new Vector3(gizmosSize, 0f,0f), $"{i}");

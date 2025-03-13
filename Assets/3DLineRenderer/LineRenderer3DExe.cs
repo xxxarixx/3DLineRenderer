@@ -4,11 +4,15 @@ using LineRenderer3D.Mods;
 
 namespace LineRenderer3D
 {
+    /// <summary>
+    /// The main class that generates the mesh based on the current data and settings.
+    /// </summary>
     [ExecuteAlways]
+    [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     class LineRenderer3DExe : MonoBehaviour
     {
         [SerializeField]
-        LRData data;
+        LRData _data;
 
         [Header("Debug")]
         [SerializeField]
@@ -31,6 +35,9 @@ namespace LineRenderer3D
             GenerateMesh();
         }
 
+        /// <summary>
+        /// Checks and assigns the mesh and mesh filter components.
+        /// </summary>
         void CheckMeshAssigment()
         {
             if(_mesh == null)
@@ -43,48 +50,46 @@ namespace LineRenderer3D
                 _meshFilter.sharedMesh = _mesh;
         }
 
+        /// <summary>
+        /// Generates the mesh based on the current data and settings.
+        /// </summary>
         void GenerateMesh()
         {
-            data ??= new();
+            _data ??= new();
+            CheckMeshAssigment();
 
             if (_regenerateBasedOnCurrentValues)
             {
-                data.ApplayDataToMesh(ref _mesh);
-                if (_meshFilter != null)
-                    _meshFilter.mesh = _mesh;
+                _data.ApplayDataToMesh(ref _mesh);
                 return;
             }
 
             if (_stopRegeneration)
                 return;
 
-            CheckMeshAssigment();
-
-            if (data.Points.Count < 2)
+            if (_data.Points.Count < 2)
             {
                 _mesh.Clear();
                 return;
             }
 
-            
-
-            data.Setup(lrTransform: transform);
+            _data.Setup(lrTransform: transform);
 
             // Setup segments info
-            for (int s = 0; s < data.Points.Count - 1; s++)
+            for (int s = 0; s < _data.Points.Count - 1; s++)
             {
-                var segment = data.GenerateSegmentInfo(start: transform.InverseTransformPoint(data.Points[s]),
-                                                       end: transform.InverseTransformPoint(data.Points[s + 1]),
+                var segment = _data.GenerateSegmentInfo(start: transform.InverseTransformPoint(_data.Points[s]),
+                                                       end: transform.InverseTransformPoint(_data.Points[s + 1]),
                                                        cylinderIndex: s);
                 if (segment == null)
                     continue;
-                data.AddSegmentInfo(segment);
+                _data.AddSegmentInfo(segment);
             }
 
             // Generate cylinders
-            for (int s = 0; s < data.Points.Count - 1; s++)
-                data.GenerateCylinder(start: transform.InverseTransformPoint(data.Points[s]),
-                                      end: transform.InverseTransformPoint(data.Points[s + 1]),
+            for (int s = 0; s < _data.Points.Count - 1; s++)
+                _data.GenerateCylinder(start: transform.InverseTransformPoint(_data.Points[s]),
+                                      end: transform.InverseTransformPoint(_data.Points[s + 1]),
                                       cylinderIndex: s,
                                       flipUV: false);
 
@@ -92,12 +97,12 @@ namespace LineRenderer3D
             foreach (var mod in GetComponents<ILRModBase>())
                 if (mod.IsEnabled)
                 {
-                    data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
-                    mod.ManipulateMesh(data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
+                    _data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
+                    mod.ManipulateMesh(_data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
                 }
 
-            data.ApplayDataToMesh(ref _mesh);
-            _meshFilter.mesh = _mesh;
+            _data.ApplayDataToMesh(ref _mesh);
+            CheckMeshAssigment();
         }
     }      
 }
