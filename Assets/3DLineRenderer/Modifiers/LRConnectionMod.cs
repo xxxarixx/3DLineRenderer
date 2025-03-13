@@ -1,10 +1,12 @@
+using LineRenderer3D.Datas;
 using System.Collections.Generic;
 using UnityEngine;
+using static LineRenderer3D.Datas.LRData;
 using static Unity.Mathematics.math;
 
-namespace LineRenderer3D.Modifiers
+namespace LineRenderer3D.Mods
 {
-    class LRConnectionModifier : MonoBehaviour, IModifierBase
+    class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
         [SerializeField] bool visualizeControlPoints;
         [SerializeField] bool visualizeConnectionPoints;
@@ -21,7 +23,7 @@ namespace LineRenderer3D.Modifiers
 
         public bool IsEnabled => enabled;
 
-        public void ManipulateMesh(LRCylinder3D lr, ref List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+        public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
             if(segmentInfos.Count < 2)
                 return;
@@ -30,22 +32,22 @@ namespace LineRenderer3D.Modifiers
             connectionPoints.Clear();
             pointsPerCurve = Mathf.Clamp(pointsPerCurve, 2, pointsPerCurve);
 
-            int numberOfFaces = lr.numberOfFaces;
-            float radius = lr.radius;
+            int numberOfFaces = data.NumberOfFaces;
+            float radius = data.Radius;
 
             for (int s = 0; s < segmentInfos.Count; s++)
             {
                 // Change current segments to make distance for corner
-                MakeDistanceForCorner(lr, s, ref segmentInfos, out bool hasCorner);
+                MakeDistanceForCorner(data, s, ref segmentInfos, out bool hasCorner);
 
                 if (!hasCorner || s == 0)
                     continue;
 
-                CreateConnections(s, numberOfFaces, radius, lr, segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
+                CreateConnections(s, numberOfFaces, radius, data, segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
             }
         }
 
-        void CreateConnections(int segmentIndex, int numberOfFaces, float radius, LRCylinder3D lr, List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+        void CreateConnections(int segmentIndex, int numberOfFaces, float radius, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
             var currentSegment = segmentInfos[segmentIndex];
             var previousSegment = segmentInfos[segmentIndex - 1];
@@ -53,11 +55,11 @@ namespace LineRenderer3D.Modifiers
             Vector3 A = Vector3.zero;
             Vector3 B = Vector3.zero;
             Vector3 C = Vector3.zero;
-            if (lr.points.Count > segmentInfos.Count)
+            if (data.Points.Count > segmentInfos.Count)
             {
-                A = lr.points[segmentIndex - 1];
-                B = lr.points[segmentIndex];
-                C = lr.points[segmentIndex + 1];
+                A = data.Points[segmentIndex - 1];
+                B = data.Points[segmentIndex];
+                C = data.Points[segmentIndex + 1];
             }
             else
             {
@@ -140,10 +142,10 @@ namespace LineRenderer3D.Modifiers
             }
         }
 
-        void MakeDistanceForCorner(LRCylinder3D lr, int segmentID, ref List<LRCylinder3D.SegmentInfo> segmentInfos, out bool hasCorner)
+        void MakeDistanceForCorner(LRData data, int segmentID, ref List<SegmentInfo> segmentInfos, out bool hasCorner)
         {
             hasCorner = false;
-            if (!lr.IsCylinderIndexValid(segmentID)) return;
+            if (!data.IsCylinderIndexValid(segmentID)) return;
 
             var segment = segmentInfos[segmentID];
             bool isFirstSegment = segmentID == 0;
@@ -183,7 +185,7 @@ namespace LineRenderer3D.Modifiers
 
                 // Move start vertices towards segment center
                 segment.startSegmentCenter += startTranslation;
-                lr.ChangeSegmentVerticesLocation(segment.startSegmentVericesIndex, startTranslation, segmentID, isStart:true, shouldUpdateUV:true);
+                data.ChangeSegmentVerticesLocation(segment.startSegmentVericesIndex, startTranslation, segmentID, isStart:true, shouldUpdateUV:true);
                 hasCorner = true;
             }
 
@@ -194,7 +196,7 @@ namespace LineRenderer3D.Modifiers
 
                 // Move end vertices towards segment center
                 segment.endSegmentCenter += endTranslation;
-                lr.ChangeSegmentVerticesLocation(segment.endSegmentVericesIndex, endTranslation, segmentID, isStart: false, shouldUpdateUV: false);
+                data.ChangeSegmentVerticesLocation(segment.endSegmentVericesIndex, endTranslation, segmentID, isStart: false, shouldUpdateUV: false);
                 //hasCorner = true;
             }
         }
@@ -211,7 +213,7 @@ namespace LineRenderer3D.Modifiers
             return crossProduct.sqrMagnitude > tolerance * tolerance;
         }
 
-        int GetRingIndex(LRCylinder3D.SegmentInfo prevSeg, LRCylinder3D.SegmentInfo currSeg, int initialVertices, int faces, int faceIndex, int ring)
+        int GetRingIndex(SegmentInfo prevSeg, SegmentInfo currSeg, int initialVertices, int faces, int faceIndex, int ring)
         {
             if (ring == 0) // Previous segment's end
                 return prevSeg.endSegmentVericesIndex[faceIndex];

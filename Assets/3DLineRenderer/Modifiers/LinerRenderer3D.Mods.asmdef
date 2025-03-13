@@ -1,10 +1,9 @@
 {
-    "name": "3DLineRenderer",
-    "rootNamespace": "LineRenderer3D",
+    "name": "LinerRenderer3D.Mods",
+    "rootNamespace": "",
     "references": [
         "GUID:d8b63aba1907145bea998dd612889d6b",
-        "GUID:b12e50841966c5f4ea3c7ca4bcb8098c",
-        "GUID:560515dee625acf48b71508ecc80cbcf"
+        "GUID:b12e50841966c5f4ea3c7ca4bcb8098c"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

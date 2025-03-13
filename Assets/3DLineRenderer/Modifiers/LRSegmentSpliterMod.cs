@@ -1,16 +1,20 @@
-using LineRenderer3D.Modifiers;
+using LineRenderer3D.Datas;
+using LineRenderer3D.Mods;
 using System.Collections.Generic;
 using UnityEngine;
+using static LineRenderer3D.Datas.LRData;
 
 namespace LineRenderer3D
 {
-    class LRSegmentSpliterModifier : MonoBehaviour, IModifierBase
+    class LRSegmentSpliterModifier : MonoBehaviour, ILRModBase
     {
         [SerializeField]
         [Range(0.5f, 1.3f)]
         float textureSize = 2f;
+
         [SerializeField]
         float gizmosSize = .1f;
+
         [SerializeField]
         bool showGizmos;
         public string Name => ToString();
@@ -22,20 +26,20 @@ namespace LineRenderer3D
 
         
 
-        public void ManipulateMesh(LRCylinder3D lr, ref List<LRCylinder3D.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+        public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
             textureSize = Mathf.Clamp(textureSize, 0.1f, 10f);
             splitedCenter = new();
             splitedCircle = new();
 
-            int numberOfFaces = lr.numberOfFaces;
-            int cylinderIndex = lr.points.Count - 1;
+            int numberOfFaces = data.NumberOfFaces;
+            int cylinderIndex = data.Points.Count - 1;
 
             bool flipUV = true;
 
             for (int i = 0; i < segmentInfos.Count; i++)
             {
-                LRCylinder3D.SegmentInfo segment = segmentInfos[i];
+                SegmentInfo segment = segmentInfos[i];
                 float distance = Vector3.Distance(segment.startSegmentCenter, segment.endSegmentCenter);
                 if(distance > textureSize)
                 {
@@ -52,14 +56,14 @@ namespace LineRenderer3D
                         segment.endSegmentCenter = startHalfwayCenter;
                         splitedCircle.Add(halfWayVertice);
                     }
-                    var segmentInfo = lr.GenerateSegmentInfo(start: transform.InverseTransformPoint(startHalfwayCenter), 
+                    var segmentInfo = data.GenerateSegmentInfo(start: transform.InverseTransformPoint(startHalfwayCenter), 
                                                              end: transform.InverseTransformPoint(endCenter), 
                                                              cylinderIndex: cylinderIndex);
                     segmentInfos.Insert(i + 1,segmentInfo);
-                    lr.GenerateCylinder(start:transform.InverseTransformPoint(startHalfwayCenter), 
-                                        end:transform.InverseTransformPoint(endCenter), 
-                                        cylinderIndex: cylinderIndex,
-                                        flipUV: flipUV = !flipUV);
+                    data.GenerateCylinder(start:transform.InverseTransformPoint(startHalfwayCenter), 
+                                          end:transform.InverseTransformPoint(endCenter), 
+                                          cylinderIndex: cylinderIndex,
+                                          flipUV: flipUV = !flipUV);
                     cylinderIndex++;
                     i--;
                 }

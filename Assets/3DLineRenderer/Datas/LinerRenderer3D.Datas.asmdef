@@ -1,11 +1,7 @@
 {
-    "name": "3DLineRenderer",
-    "rootNamespace": "LineRenderer3D",
-    "references": [
-        "GUID:d8b63aba1907145bea998dd612889d6b",
-        "GUID:b12e50841966c5f4ea3c7ca4bcb8098c",
-        "GUID:560515dee625acf48b71508ecc80cbcf"
-    ],
+    "name": "LinerRenderer3D.Datas",
+    "rootNamespace": "LinerRenderer3D.Datas",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

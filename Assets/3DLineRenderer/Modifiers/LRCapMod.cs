@@ -1,19 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static LineRenderer3D.LRCylinder3D;
 using System.Linq;
-using Unity.Mathematics;
+using static LineRenderer3D.Datas.LRData;
 using static Unity.Mathematics.math;
-
 using System;
-
+using LineRenderer3D.Datas;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
-namespace LineRenderer3D.Modifiers
+namespace LineRenderer3D.Mods
 {
-    class LRCap : MonoBehaviour, IModifierBase
+    class LRCap : MonoBehaviour, ILRModBase
     {
         [SerializeField]
         bool showGizmos;
@@ -26,7 +24,7 @@ namespace LineRenderer3D.Modifiers
 
         [Header(nameof(CapTypes.round))]
         List<int> ringEdgeIndexes;
-        LRCylinder3D lr;
+        LRData data;
 
 
         [Header(nameof(CapTypes.spike))]
@@ -52,7 +50,7 @@ namespace LineRenderer3D.Modifiers
             round
         }
 
-        public void ManipulateMesh(LRCylinder3D lr, ref List<SegmentInfo> segmentInfos,
+        public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos,
             ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
             if (segmentInfos.Count < 1 || segmentSplit == 0) return;
@@ -60,10 +58,10 @@ namespace LineRenderer3D.Modifiers
             switch (capType)
             {
                 case CapTypes.spike:
-                    SpikeCap(lr, ref segmentInfos, ref vertices);
+                    SpikeCap(data, ref segmentInfos, ref vertices);
                     break;
                 case CapTypes.round:
-                    RoundCap(lr, ref segmentInfos, ref vertices, ref triangles, ref uvs, ref normals);
+                    RoundCap(data, ref segmentInfos, ref vertices, ref triangles, ref uvs, ref normals);
                     break;
                 default:
                     break;
@@ -71,24 +69,24 @@ namespace LineRenderer3D.Modifiers
             
         }
 
-        void RoundCap(LRCylinder3D lr, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<int> triangles, ref List<Vector2> uvs, ref List<Vector3> normals)
+        void RoundCap(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<int> triangles, ref List<Vector2> uvs, ref List<Vector3> normals)
         {
             if (begginingCap)
-                GenerateSphereCap(lr, segmentInfos[0], ref vertices, ref triangles, ref uvs, ref normals, isStart: true);
+                GenerateSphereCap(data, segmentInfos[0], ref vertices, ref triangles, ref uvs, ref normals, isStart: true);
 
             if (endCap)
-                GenerateSphereCap(lr, segmentInfos[^1], ref vertices, ref triangles, ref uvs, ref normals, isStart: false);
+                GenerateSphereCap(data, segmentInfos[^1], ref vertices, ref triangles, ref uvs, ref normals, isStart: false);
         }
 
-        void GenerateSphereCap(LRCylinder3D lr, SegmentInfo segment, ref List<Vector3> vertices, ref List<int> triangles, ref List<Vector2> uvs, ref List<Vector3> normals, bool isStart)
+        void GenerateSphereCap(LRData data, SegmentInfo segment, ref List<Vector3> vertices, ref List<int> triangles, ref List<Vector2> uvs, ref List<Vector3> normals, bool isStart)
         {
             if(isStart || begginingCap != endCap)
             {
                 ringEdgeIndexes = new();
-                this.lr = lr;
+                this.data = data;
             }
-            int numberOfFaces = lr.numberOfFaces;
-            float radius = lr.radius;
+            int numberOfFaces = data.NumberOfFaces;
+            float radius = data.Radius;
             int baseVertexCount = vertices.Count;
             Vector3 center = isStart ? segment.startSegmentCenter : segment.endSegmentCenter;
             List<int> baseIndexes = isStart ? segment.startSegmentVericesIndex : segment.endSegmentVericesIndex;
@@ -158,23 +156,23 @@ namespace LineRenderer3D.Modifiers
             }
         }
 
-        void SpikeCap(LRCylinder3D lr, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices)
+        void SpikeCap(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices)
         {
             if (begginingCap)
             {
                 Vector3 dir = normalize(segmentInfos[0].startSegmentCenter - segmentInfos[0].endSegmentCenter);
                 Vector3 endPosition = segmentInfos[0].startSegmentCenter + dir * capSize;
-                lr.GenerateCylinder(segmentInfos[0].startSegmentCenter, endPosition, segmentInfos.Count, flipUV: false);
-                var segmentInfo = lr.GenerateSegmentInfo(segmentInfos[0].startSegmentCenter, endPosition, segmentInfos.Count);
+                data.GenerateCylinder(segmentInfos[0].startSegmentCenter, endPosition, segmentInfos.Count, flipUV: false);
+                var segmentInfo = data.GenerateSegmentInfo(segmentInfos[0].startSegmentCenter, endPosition, segmentInfos.Count);
                 segmentInfos.Insert(0, segmentInfo);
 
-                ProcessSegments(segmentInfos[0].uniqueId, isItBeggining:true, lr, ref segmentInfos, ref vertices);
+                ProcessSegments(segmentInfos[0].uniqueId, isItBeggining:true, data, ref segmentInfos, ref vertices);
                 ApplayCurveOnCap(0, ref segmentInfos, ref vertices, beginningCurve, (int)pow(2, segmentSplit) + 1, reverseCurve: false, isItEnd: false);
             }
 
             if (endCap)
             {
-                ProcessSegments(segmentInfos[^1].uniqueId, isItBeggining:false, lr, ref segmentInfos, ref vertices);
+                ProcessSegments(segmentInfos[^1].uniqueId, isItBeggining:false, data, ref segmentInfos, ref vertices);
                 int numberOfIndexesToAffect = (int)pow(2, segmentSplit) - 1;
                 int startIndex = segmentInfos.Count - numberOfIndexesToAffect;
                 ApplayCurveOnCap(startIndex, ref segmentInfos, ref vertices, endCurve, numberOfIndexesToAffect, reverseCurve: true, isItEnd: true);
@@ -211,7 +209,7 @@ namespace LineRenderer3D.Modifiers
             }
         }
 
-        void ProcessSegments(string startingUniqueId, bool isItBeggining, LRCylinder3D lr, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices)
+        void ProcessSegments(string startingUniqueId, bool isItBeggining, LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices)
         {
             ids.Clear();
             int splitIndex = 0;
@@ -232,13 +230,18 @@ namespace LineRenderer3D.Modifiers
                 else
                 {
                     var id = ids[0];
-                    newIds.AddRange(SplitSegment(id, lr, ref segmentInfos, ref vertices, isItBeggining));
+                    newIds.AddRange(SplitSegment(vertices: ref vertices,
+                                                 idToSplit: id, 
+                                                 data, 
+                                                 segmentInfos: ref segmentInfos, 
+                                                 isItBeggining));
+
                     ids.RemoveAt(0);
                 }
             }
         }
 
-        string[] SplitSegment(string idToSplit, LRCylinder3D lr, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, bool isItBeggining)
+        string[] SplitSegment(ref List<Vector3> vertices, string idToSplit, LRData data, ref List<SegmentInfo> segmentInfos, bool isItBeggining)
         {
             var newIds = new string[2];
             var segmentIndex = segmentInfos.FindIndex(x => x.uniqueId == idToSplit);
@@ -253,11 +256,11 @@ namespace LineRenderer3D.Modifiers
                 Vector3 halfWay = Vector3.Lerp(startVertice, endVertice, 0.5f);
                 vertices[segment.endSegmentVericesIndex[i]] = halfWay;
             }
-            lr.GenerateCylinder(start: halfWayCenter,
-            end: oldEndSegmentCenter,
-                                segmentInfos.Count,
-                                flipUV: false);
-            var newSegment = lr.GenerateSegmentInfo(start: halfWayCenter,
+            data.GenerateCylinder(start: halfWayCenter,
+                                  end: oldEndSegmentCenter,
+                                  segmentInfos.Count,
+                                  flipUV: false);
+            var newSegment = data.GenerateSegmentInfo(start: halfWayCenter,
                                                     end: oldEndSegmentCenter,
                                                     cylinderIndex: segmentInfos.Count);
             segmentInfos.Insert(isItBeggining?segmentIndex : segmentIndex + 1, newSegment);
@@ -268,7 +271,7 @@ namespace LineRenderer3D.Modifiers
 
         void OnDrawGizmos()
         {
-            if (lr == null || !enabled || !showGizmos)
+            if (data == null || !enabled || !showGizmos)
                 return;
             switch (capType)
             {
@@ -277,7 +280,7 @@ namespace LineRenderer3D.Modifiers
                 case CapTypes.round:
                     for (int i = 0; i < ringEdgeIndexes.Count; i++)
                     {
-                        Vector3 item = lr.GetVertice(ringEdgeIndexes[i]);
+                        Vector3 item = data.GetVertice(ringEdgeIndexes[i]);
                         Gizmos.color = Color.black;
 #if UNITY_EDITOR
                         Handles.Label(item + new Vector3(gizmosSize, 0f,0f), $"{i}");
