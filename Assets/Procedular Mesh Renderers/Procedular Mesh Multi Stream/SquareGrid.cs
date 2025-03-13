@@ -1,12 +1,12 @@
 
-using ProcedularMesh.Streams;
+using ProcedularMesh.MStream.Streams;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 using static Unity.Mathematics.math;
 
-namespace ProcedularMesh
+namespace ProcedularMesh.MStream
 {
     struct SquareGrid : IMeshGenerator
     {

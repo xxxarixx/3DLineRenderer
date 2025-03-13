@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace ProcedularMesh.Streams
+namespace ProcedularMesh.MStream.Streams
 {
     struct MultiStream : IMeshStreams
     {

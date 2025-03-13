@@ -1,8 +1,9 @@
 {
-    "name": "3DLineRenderer",
-    "rootNamespace": "LineRenderer3D",
+    "name": "ProcedularMesh.MStream",
+    "rootNamespace": "ProcedularMesh.MStream",
     "references": [
-        "GUID:d8b63aba1907145bea998dd612889d6b"
+        "GUID:d8b63aba1907145bea998dd612889d6b",
+        "GUID:2665a8d13d1b3f18800f46e256720795"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

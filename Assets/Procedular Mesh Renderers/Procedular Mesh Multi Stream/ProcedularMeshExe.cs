@@ -1,20 +1,29 @@
+using ProcedularMesh.MStream.Streams;
 using UnityEngine;
 
-namespace ProcedularMesh
+namespace ProcedularMesh.MStream
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+    [ExecuteAlways]
     class ProcedularMeshExe : MonoBehaviour
     {
         private Mesh mesh;
         private MeshFilter meshFilter;
 
+        [SerializeField]
+        int resolution;
+
         void Awake()
+        {
+            SetupMesh();
+            GenerateMesh();
+        }
+        void SetupMesh()
         {
             mesh = new Mesh
             {
                 name = "Procedural Mesh"
             };
-            GenerateMesh();
             GetComponent<MeshFilter>().mesh = mesh;
         }
 
@@ -23,6 +32,17 @@ namespace ProcedularMesh
         { 
             Mesh.MeshDataArray meshDataArray = Mesh.AllocateWritableMeshData(1);
             Mesh.MeshData meshData = meshDataArray[0];
+
+            MeshJob<SquareGrid, MultiStream>.ScheduleParallel(mesh, resolution, meshData, default).Complete();
+
+            Mesh.ApplyAndDisposeWritableMeshData(meshDataArray, mesh);
+        }
+
+        private void OnValidate()
+        {
+            if (mesh == null)
+                SetupMesh();
+            GenerateMesh();
         }
     }
 }

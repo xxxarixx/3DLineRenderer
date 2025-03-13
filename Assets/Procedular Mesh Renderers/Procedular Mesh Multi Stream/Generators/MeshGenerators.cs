@@ -1,7 +1,7 @@
-using ProcedularMesh.Streams;
+using ProcedularMesh.MStream.Streams;
 using UnityEngine;
 
-namespace ProcedularMesh
+namespace ProcedularMesh.MStream
 {
     interface IMeshGenerator
     {

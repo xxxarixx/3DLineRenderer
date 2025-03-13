@@ -1,6 +1,7 @@
 using UnityEngine;
 using static Unity.Mathematics.math;
-namespace LineRenderer3D
+
+namespace ProcedularMesh.SStream
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     [ExecuteAlways]

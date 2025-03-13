@@ -1,8 +1,6 @@
-using NUnit.Framework.Constraints;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace LineRenderer3D
+namespace ProcedularMesh.SStream
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     [ExecuteAlways]

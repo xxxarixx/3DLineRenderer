@@ -1,6 +1,6 @@
 using Unity.Mathematics;
 
-namespace ProcedularMesh
+namespace ProcedularMesh.MStream
 {
     internal struct MeshVertexData
     {

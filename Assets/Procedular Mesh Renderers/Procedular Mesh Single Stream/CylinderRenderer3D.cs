@@ -1,7 +1,7 @@
 using UnityEngine;
 using static Unity.Mathematics.math;
 
-namespace LineRenderer3D
+namespace ProcedularMesh.SStream
 {
     class CylinderRenderer3D : MonoBehaviour
     {
