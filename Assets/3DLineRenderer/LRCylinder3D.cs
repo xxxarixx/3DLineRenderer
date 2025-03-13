@@ -178,7 +178,9 @@ namespace LineRenderer3D
             if(meshFilter != null)
                 meshFilter.mesh = mesh;
         }
-        
+
+        internal Vector3 GetVertice(int index) => vertices[index];
+
         internal void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool flipUV)
         {
             Vector3 direction = (end - start).normalized;
