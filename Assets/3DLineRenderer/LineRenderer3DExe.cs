@@ -102,7 +102,7 @@ namespace LineRenderer3D
                 }
 
             _data.ApplayDataToMesh(ref _mesh);
-            CheckMeshAssigment();
+            _meshFilter.sharedMesh = _mesh;
         }
     }      
 }
