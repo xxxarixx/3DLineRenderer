@@ -50,10 +50,19 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
     }
 
     // Copied veriables from modifier to visualize them in gizmos.
+    [SerializeField]
     List<LRData.SegmentInfo> _segmentInfos;
+
+    [SerializeField]
     List<Vector3> _vertices;
+
+    [SerializeField]
     List<Vector3> _normals;
+
+    [SerializeField]
     List<Vector2> _uvs;
+
+    [SerializeField]
     List<int> _triangles;
     LRData _data;
 

@@ -47,21 +47,11 @@ namespace LineRenderer3D.Datas
 
         public List<Vector3> Points = new();
 
-        [Header("Debug")]
 
-        [SerializeField]
         List<SegmentInfo> _segmentInfos;
-
-        [SerializeField]
         List<Vector3> _vertices;
-
-        [SerializeField]
         List<Vector3> _normals;
-
-        [SerializeField]
         List<Vector2> _uvs;
-
-        [SerializeField]
         List<int> _triangles;
 
         /// <summary>
@@ -150,7 +140,7 @@ namespace LineRenderer3D.Datas
         {
             Vector3 direction = (end - start).normalized;
 
-            if (direction == Vector3.zero) return;
+            //if (direction == Vector3.zero) return;
 
             Quaternion rotation = Quaternion.LookRotation(direction);
 

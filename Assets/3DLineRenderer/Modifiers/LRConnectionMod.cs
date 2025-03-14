@@ -15,7 +15,6 @@ namespace LineRenderer3D.Mods
         [Range(-2f, 2f)] 
         float _distanceControlPointMultiplayer;
 
-        [SerializeField]
         [Tooltip("More means better quality but in cost of performance. ")]
         int _pointsPerCurve = 5;
 
@@ -66,7 +65,7 @@ namespace LineRenderer3D.Mods
             // Prepare lists to new LR
             helpControlPoints.Clear();
             connectionPoints.Clear();
-            _pointsPerCurve = Mathf.Clamp(_pointsPerCurve, 2, _pointsPerCurve);
+            _pointsPerCurve = Mathf.Clamp(data.NumberOfFaces, 2, data.NumberOfFaces);
 
             for (int s = 0; s < segmentInfos.Count; s++)
             {
@@ -87,6 +86,9 @@ namespace LineRenderer3D.Mods
         /// <param name="segmentIndex">The index of the current segment.</param>
         void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
+            if(segmentIndex + 1 > segmentInfos.Count)
+                return;
+
             SegmentInfo currentSegment = segmentInfos[segmentIndex];
             SegmentInfo previousSegment = segmentInfos[segmentIndex - 1];
 

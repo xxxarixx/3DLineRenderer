@@ -88,10 +88,14 @@ namespace LineRenderer3D
 
             // Generate cylinders
             for (int s = 0; s < _data.Points.Count - 1; s++)
+            {
+                /*if (s > 0 && Vector3.Distance(_data.Points[s - 1], _data.Points[s]) < 0.0001f)
+                    continue;*/
                 _data.GenerateCylinder(start: transform.InverseTransformPoint(_data.Points[s]),
                                       end: transform.InverseTransformPoint(_data.Points[s + 1]),
                                       cylinderIndex: s,
                                       flipUV: false);
+            }
 
             // Applay mods to LR
             foreach (var mod in GetComponents<ILRModBase>())
