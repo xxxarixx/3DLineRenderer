@@ -91,7 +91,7 @@ namespace LineRenderer3D.Mods
                     Vector3 vertex = center + rotation * new Vector3(x, y, z);
                     vertices.Add(vertex);
                     normals.Add(normalize(vertex - center));
-                    uvs.Add(correctionRotation * new Vector2((float)s / _segments, (float)ring / _rings));
+                    uvs.Add(correctionRotation * new Vector2((float)s / _segments, isStart? 1f - (float)ring / _rings : (float)ring / _rings));
 
                     
                     // second half of vertices
