@@ -19,6 +19,7 @@ namespace LineRenderer3D.Mods
         int _pointsPerCurve = 5;
 
         [SerializeField]
+        [Range(0.01f,0.5f)]
         [Tooltip("Adjusts the distance of the segment corners to create space for a smooth transition between segments.")]
         float _distance = 1f;
 
@@ -86,7 +87,7 @@ namespace LineRenderer3D.Mods
         /// <param name="segmentIndex">The index of the current segment.</param>
         void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            if(segmentIndex >= segmentInfos.Count - 1)
+            if(segmentIndex >= segmentInfos.Count - 1 && segmentInfos.Count >= data.Points.Count)
                 return;
 
             SegmentInfo currentSegment = segmentInfos[segmentIndex];
