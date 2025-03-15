@@ -1,3 +1,4 @@
+using LinerRenderer3D.Datas;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,39 +14,7 @@ namespace LineRenderer3D.Datas
         public Transform LrTransform { get; private set; }
 
         [SerializeField]
-        [Tooltip("needed to be even number, in order to uv be properly generated, it is handled automatically")]
-        [Range(4, 20)]
-        int _numberOfFaces = 8;
-
-        /// <summary>
-        /// needed to be even number, in order to uv be properly generated, it is handled automatically
-        /// </summary>
-        public int NumberOfFaces
-        {
-            get
-            {
-                int numberOfFaces = _numberOfFaces;
-                if (numberOfFaces % 2 != 0)
-                    numberOfFaces++;
-                return numberOfFaces;
-            }
-        }
-
-        [SerializeField]
-        float _radius = 0.1f;
-
-        /// <summary>
-        /// The radius of the cylinder segments.
-        /// </summary>
-        public float Radius 
-        { 
-            get 
-            { 
-                return _radius;
-            } 
-        }
-
-        public List<Vector3> Points = new();
+        public LRConfig Config;
 
 
         List<SegmentInfo> _segmentInfos;
@@ -102,6 +71,7 @@ namespace LineRenderer3D.Datas
 
         public SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex)
         {
+            int numberOfFaces = Config.NumberOfFaces;
             Vector3 direction = (end - start).normalized;
             if (direction == Vector3.zero) return null;
 
@@ -112,8 +82,8 @@ namespace LineRenderer3D.Datas
             List<int> startSegmentVericesIndex = new();
             List<int> endSegmentVericesIndex = new();
 
-            int baseIndex = cylinderIndex * NumberOfFaces * 2;
-            for (int i = 0; i < NumberOfFaces; i++)
+            int baseIndex = cylinderIndex * numberOfFaces * 2;
+            for (int i = 0; i < numberOfFaces; i++)
             {
                 int current = baseIndex + i * 2;
                 startSegmentVericesIndex.Add(current);
@@ -138,6 +108,8 @@ namespace LineRenderer3D.Datas
         /// <param name="flipUV">Whether to flip the UV coordinates.</param>
         public void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool flipUV)
         {
+            int numberOfFaces = Config.NumberOfFaces;
+            float radius = Config.Radius;
             Vector3 direction = (end - start).normalized;
 
             //if (direction == Vector3.zero) return;
@@ -145,12 +117,12 @@ namespace LineRenderer3D.Datas
             Quaternion rotation = Quaternion.LookRotation(direction);
 
             // Generate vertices for this segment
-            for (int f = 0; f < NumberOfFaces; f++)
+            for (int f = 0; f < numberOfFaces; f++)
             {
-                float theta = Mathf.PI * 2 * f / NumberOfFaces;
+                float theta = Mathf.PI * 2 * f / numberOfFaces;
                 Vector3 circleOffset = new(
-                    Mathf.Cos(theta) * Radius,
-                    Mathf.Sin(theta) * Radius,
+                    Mathf.Cos(theta) * radius,
+                    Mathf.Sin(theta) * radius,
                     0
                 );
 
@@ -167,24 +139,24 @@ namespace LineRenderer3D.Datas
                 _normals.Add(normal);
 
                 // UV mapping
-                if (f > NumberOfFaces / 2)
+                if (f > numberOfFaces / 2)
                 {
-                    _uvs.Add(new Vector2(2f - (1f / NumberOfFaces * f) * 2f, flipUV ? 1 : 0));
-                    _uvs.Add(new Vector2(2f - (1f / NumberOfFaces * f) * 2f, flipUV ? 0 : 1));
+                    _uvs.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
+                    _uvs.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
                 }
                 else
                 {
-                    _uvs.Add(new Vector2((1f / NumberOfFaces * f) * 2f, flipUV ? 1 : 0));
-                    _uvs.Add(new Vector2((1f / NumberOfFaces * f) * 2f, flipUV ? 0 : 1));
+                    _uvs.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
+                    _uvs.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
                 }
             }
 
             // Generate triangles for this segment
-            int baseIndex = cylinderIndex * NumberOfFaces * 2;
-            for (int i = 0; i < NumberOfFaces; i++)
+            int baseIndex = cylinderIndex * numberOfFaces * 2;
+            for (int i = 0; i < numberOfFaces; i++)
             {
                 int current = baseIndex + i * 2;
-                int next = baseIndex + ((i + 1) % NumberOfFaces) * 2;
+                int next = baseIndex + ((i + 1) % numberOfFaces) * 2;
                 // First triangle
                 _triangles.Add(current);
                 _triangles.Add(next);

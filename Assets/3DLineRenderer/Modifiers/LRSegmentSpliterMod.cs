@@ -36,8 +36,8 @@ namespace LineRenderer3D.Mods
             splitedCenter = new();
             splitedCircle = new();
 
-            int numberOfFaces = data.NumberOfFaces;
-            int cylinderIndex = data.Points.Count - 1;
+            int numberOfFaces = data.Config.NumberOfFaces;
+            int cylinderIndex = data.Config.Points.Count - 1;
 
             bool flipUV = true;
 

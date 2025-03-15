@@ -54,8 +54,8 @@ namespace LineRenderer3D.Mods
                 ringEdgeIndexes = new();
                 this.data = data;
             }
-            int numberOfFaces = data.NumberOfFaces;
-            float radius = data.Radius;
+            int numberOfFaces = data.Config.NumberOfFaces;
+            float radius = data.Config.Radius;
             int baseVertexCount = vertices.Count;
             Vector3 center = isStart ? segment.startSegmentCenter : segment.endSegmentCenter;
             center = data.LrTransform.InverseTransformPoint(center);

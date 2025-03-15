@@ -74,7 +74,7 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
         if (_visualizePointsPositions)
         {
             Gizmos.color = Color.green;
-            foreach (Vector3 point in _data.Points)
+            foreach (Vector3 point in _data.Config.Points)
                 Gizmos.DrawWireSphere(point, .1f);
         }
 

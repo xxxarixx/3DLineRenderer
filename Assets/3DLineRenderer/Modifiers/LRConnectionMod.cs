@@ -7,7 +7,10 @@ using static Unity.Mathematics.math;
 namespace LineRenderer3D.Mods
 {
     /// <summary>
-    /// Modifies the connection between segments by adding a curve between them.
+    /// Modifies the connection between segments by adding a curve between them.<br/>
+    /// BUG LOG:<br/>
+    /// 1) (UV) There are some cases when distance veriable causes bugs, because it shrinkening segments and these segments have whole uv very packed and these causes UV visual bug. <br/>
+    /// 2) (SEGMENT) There are some cases when distance is very low it's working fine but when it's high it causes bugs, but keep in mind that when distance is low connection is poor nad visually ugly. <br/>
     /// </summary>
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
@@ -66,7 +69,7 @@ namespace LineRenderer3D.Mods
             // Prepare lists to new LR
             helpControlPoints.Clear();
             connectionPoints.Clear();
-            _pointsPerCurve = Mathf.Clamp(data.NumberOfFaces, 2, data.NumberOfFaces);
+            _pointsPerCurve = Mathf.Clamp(data.Config.NumberOfFaces, 2, data.Config.NumberOfFaces);
 
             for (int s = 0; s < segmentInfos.Count; s++)
             {
@@ -87,14 +90,14 @@ namespace LineRenderer3D.Mods
         /// <param name="segmentIndex">The index of the current segment.</param>
         void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            if(segmentIndex >= segmentInfos.Count - 1 && segmentInfos.Count >= data.Points.Count)
+            if(segmentIndex >= segmentInfos.Count - 1 && segmentInfos.Count >= data.Config.Points.Count)
                 return;
 
             SegmentInfo currentSegment = segmentInfos[segmentIndex];
             SegmentInfo previousSegment = segmentInfos[segmentIndex - 1];
 
-            int numberOfFaces = data.NumberOfFaces;
-            float radius = data.Radius;
+            int numberOfFaces = data.Config.NumberOfFaces;
+            float radius = data.Config.Radius;
             float _distanceControlPointMultiplayer = 0f;
 
             // A => Previous Point, B => Current Point, C => Next Point
@@ -103,11 +106,11 @@ namespace LineRenderer3D.Mods
             Vector3 C = Vector3.zero;
 
 
-            if (data.Points.Count > segmentInfos.Count)
+            if (data.Config.Points.Count > segmentInfos.Count)
             {
-                A = data.Points[segmentIndex - 1];
-                B = data.Points[segmentIndex];
-                C = data.Points[segmentIndex + 1];
+                A = data.Config.Points[segmentIndex - 1];
+                B = data.Config.Points[segmentIndex];
+                C = data.Config.Points[segmentIndex + 1];
             }
             else
             {
