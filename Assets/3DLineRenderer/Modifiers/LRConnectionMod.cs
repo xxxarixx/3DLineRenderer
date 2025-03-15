@@ -12,8 +12,8 @@ namespace LineRenderer3D.Mods
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
         [SerializeField] 
-        [Range(-2f, 2f)] 
-        float _distanceControlPointMultiplayer;
+        [Range(1f, 2f)] 
+        float autoAnglerMultiplayer;
 
         [Tooltip("More means better quality but in cost of performance. ")]
         int _pointsPerCurve = 5;
@@ -86,7 +86,7 @@ namespace LineRenderer3D.Mods
         /// <param name="segmentIndex">The index of the current segment.</param>
         void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            if(segmentIndex + 1 > segmentInfos.Count)
+            if(segmentIndex >= segmentInfos.Count - 1)
                 return;
 
             SegmentInfo currentSegment = segmentInfos[segmentIndex];
@@ -94,11 +94,13 @@ namespace LineRenderer3D.Mods
 
             int numberOfFaces = data.NumberOfFaces;
             float radius = data.Radius;
+            float _distanceControlPointMultiplayer = 0f;
 
             // A => Previous Point, B => Current Point, C => Next Point
             Vector3 A = Vector3.zero;
             Vector3 B = Vector3.zero;
             Vector3 C = Vector3.zero;
+
 
             if (data.Points.Count > segmentInfos.Count)
             {
@@ -111,9 +113,15 @@ namespace LineRenderer3D.Mods
                 A = segmentInfos[segmentIndex - 1].startSegmentCenter;
                 B = segmentInfos[segmentIndex].initStartSegmentCenter;
                 C = segmentInfos[segmentIndex + 1].endSegmentCenter;
-                if (segmentIndex == segmentInfos.Count - 1)
-                    return;
             }
+
+            // Auto adjust distance control point multiplayer based on the angle between segments
+            float cornerAngle = LineRenderer3DExtenction.GetAngleBetweenVectors(A, B, C);
+            // Normalize the angle to the range [0, 360]
+            cornerAngle = Mathf.Repeat(cornerAngle, 360f);
+
+            // Map the angle to a value between 0 and 1
+            _distanceControlPointMultiplayer = ((1 + Mathf.Cos(cornerAngle * Mathf.Deg2Rad)) / 2f) * autoAnglerMultiplayer;
 
             Vector3 dirToA = (A - B).normalized;
             Vector3 dirToC = (C - B).normalized;

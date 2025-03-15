@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using static LineRenderer3D.Datas.LRData;
 
-namespace LineRenderer3D
+namespace LineRenderer3D.Mods
 {
     /// <summary>
     /// Splits the segments into half if the distance between the start and end points is greater than the texture size.
