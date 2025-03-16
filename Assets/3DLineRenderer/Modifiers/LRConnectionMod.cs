@@ -15,7 +15,7 @@ namespace LineRenderer3D.Mods
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
         [SerializeField] 
-        [Range(1f, 2f)] 
+        [Range(0.5f, 2.5f)] 
         float autoAnglerMultiplayer;
 
         [Tooltip("More means better quality but in cost of performance. ")]
@@ -125,7 +125,7 @@ namespace LineRenderer3D.Mods
             cornerAngle = Mathf.Repeat(cornerAngle, 360f);
 
             // Map the angle to a value between 0 and 1
-            _distanceControlPointMultiplayer = ((1 + Mathf.Cos(cornerAngle * Mathf.Deg2Rad)) / 2f) * autoAnglerMultiplayer;
+            _distanceControlPointMultiplayer = ((Mathf.Cos(cornerAngle * Mathf.Deg2Rad)) / 2f) * autoAnglerMultiplayer;
 
             Vector3 dirToA = (A - B).normalized;
             Vector3 dirToC = (C - B).normalized;
