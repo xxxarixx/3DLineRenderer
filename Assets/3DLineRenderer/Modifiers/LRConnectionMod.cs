@@ -15,10 +15,6 @@ namespace LineRenderer3D.Mods
     /// </summary>
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
-        [SerializeField] 
-        [Range(-1f, 1f)] 
-        float autoAnglerMultiplayer;
-
         [Tooltip("More means better quality but in cost of performance. ")]
         int _pointsPerCurve = 5;
 
