@@ -1,0 +1,19 @@
+{
+    "name": "LinerRenderer3D.Datas.Editor",
+    "rootNamespace": "LinerRenderer3D.Datas.Editor",
+    "references": [
+        "GUID:b12e50841966c5f4ea3c7ca4bcb8098c",
+        "GUID:934944f1d10650f4a982208571bc8cc3"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

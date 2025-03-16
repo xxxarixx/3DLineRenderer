@@ -11,10 +11,9 @@ namespace LineRenderer3D
     /// </summary>
     [ExecuteAlways]
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-    class LineRenderer3DExe : MonoBehaviour
+    public class LineRenderer3DExe : MonoBehaviour
     {
-        [SerializeField]
-        LRData _data;
+        public LRData Data;
 
         [Header("Debug")]
         [SerializeField]
@@ -63,8 +62,8 @@ namespace LineRenderer3D
         /// </summary>
         void GenerateMesh()
         {
-            _data ??= new();
-            if (_data.Config == null)
+            Data ??= new();
+            if (Data.Config == null)
             {
                 Debug.LogError($"There is no config, please set configuration files!");
                 return;
@@ -73,39 +72,39 @@ namespace LineRenderer3D
 
             if (_regenerateBasedOnCurrentValues)
             {
-                _data.ApplayDataToMesh(ref _mesh);
+                Data.ApplayDataToMesh(ref _mesh);
                 return;
             }
 
             if (_stopRegeneration)
                 return;
 
-            if (_data.Config.Points.Count < 2)
+            if (Data.Config.Points.Count < 2)
             {
                 _mesh.Clear();
                 return;
             }
 
-            _data.Setup(lrTransform: transform);
+            Data.Setup(lrTransform: transform);
 
             // Setup segments info
-            for (int s = 0; s < _data.Config.Points.Count - 1; s++)
+            for (int s = 0; s < Data.Config.Points.Count - 1; s++)
             {
-                var segment = _data.GenerateSegmentInfo(start: transform.InverseTransformPoint(_data.Config.Points[s]),
-                                                       end: transform.InverseTransformPoint(_data.Config.Points[s + 1]),
+                var segment = Data.GenerateSegmentInfo(start: transform.InverseTransformPoint(Data.Config.Points[s]),
+                                                       end: transform.InverseTransformPoint(Data.Config.Points[s + 1]),
                                                        cylinderIndex: s);
                 if (segment == null)
                     continue;
-                _data.AddSegmentInfo(segment);
+                Data.AddSegmentInfo(segment);
             }
 
             // Generate cylinders
-            for (int s = 0; s < _data.Config.Points.Count - 1; s++)
+            for (int s = 0; s < Data.Config.Points.Count - 1; s++)
             {
                 /*if (s > 0 && Vector3.Distance(_data.Points[s - 1], _data.Points[s]) < 0.0001f)
                     continue;*/
-                _data.GenerateCylinder(start: transform.InverseTransformPoint(_data.Config.Points[s]),
-                                      end: transform.InverseTransformPoint(_data.Config.Points[s + 1]),
+                Data.GenerateCylinder(start: transform.InverseTransformPoint(Data.Config.Points[s]),
+                                      end: transform.InverseTransformPoint(Data.Config.Points[s + 1]),
                                       cylinderIndex: s,
                                       flipUV: false);
             }
@@ -114,11 +113,11 @@ namespace LineRenderer3D
             foreach (var mod in GetComponents<ILRModBase>())
                 if (mod.IsEnabled)
                 {
-                    _data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
-                    mod.ManipulateMesh(_data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
+                    Data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
+                    mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
                 }
 
-            _data.ApplayDataToMesh(ref _mesh);
+            Data.ApplayDataToMesh(ref _mesh);
             _meshFilter.sharedMesh = _mesh;
         }
     }
