@@ -211,11 +211,10 @@ namespace LineRenderer3D.Mods
             bool isFirstSegment = segmentID == 0;
             bool isLastSegment = segmentID == segmentInfos.Count - 1;
 
-            // Check for corners at BOTH ends of the segment
             bool startHasCorner = false;
             bool endHasCorner = false;
 
-            // Check previous segment connection (start of current segment)
+            // Check previous segment (start of current segment)
             if (!isFirstSegment)
             {
                 var prevSegment = segmentInfos[segmentID - 1];
@@ -226,7 +225,7 @@ namespace LineRenderer3D.Mods
                 );
             }
 
-            // Check next segment connection (end of current segment)
+            // Check next segment (end of current segment)
             if (!isLastSegment)
             {
                 var nextSegment = segmentInfos[segmentID + 1];
@@ -237,31 +236,63 @@ namespace LineRenderer3D.Mods
                 );
             }
 
-            // Apply translations only where needed
+            // Calculate potential new length after adjustments
+            float originalLength = Vector3.Distance(segment.startSegmentCenter, segment.endSegmentCenter);
+            float remainingLength = originalLength;
+
+            Vector3 startTranslation = Vector3.zero;
+            Vector3 endTranslation = Vector3.zero;
+
             if (startHasCorner)
             {
                 Vector3 startDirection = (segment.endSegmentCenter - segment.startSegmentCenter).normalized;
-                Vector3 startTranslation = startDirection * _distance;
-
-                // Move start vertices towards segment center
-                segment.startSegmentCenter += startTranslation;
-
-                // Change segment vertices location by translation
-                foreach (int index in segment.startSegmentVericesIndex)
-                    vertices[index] += startTranslation;
-
-                hasCorner = true;
+                startTranslation = startDirection * _distance;
+                remainingLength -= _distance;
             }
 
             if (endHasCorner)
             {
                 Vector3 endDirection = (segment.startSegmentCenter - segment.endSegmentCenter).normalized;
-                Vector3 endTranslation = endDirection * _distance;
+                endTranslation = endDirection * _distance;
+                remainingLength -= _distance;
+            }
 
-                // Move end vertices towards segment center
+            // Ensure the remaining length is at least twice the radius to prevent overlap
+            float minLength = data.Config.Radius * 2f;
+            if (remainingLength < minLength)
+            {
+                // Adjust distances proportionally
+                float totalAdjustment = originalLength - minLength;
+                if (totalAdjustment <= 0) return; // Not enough to adjust
+
+                if (startHasCorner && endHasCorner)
+                {
+                    float adjustRatio = totalAdjustment / (2 * _distance);
+                    startTranslation *= adjustRatio;
+                    endTranslation *= adjustRatio;
+                }
+                else if (startHasCorner)
+                {
+                    startTranslation = (segment.endSegmentCenter - segment.startSegmentCenter).normalized * totalAdjustment;
+                }
+                else if (endHasCorner)
+                {
+                    endTranslation = (segment.startSegmentCenter - segment.endSegmentCenter).normalized * totalAdjustment;
+                }
+            }
+
+            // Apply translations
+            if (startHasCorner)
+            {
+                segment.startSegmentCenter += startTranslation;
+                foreach (int index in segment.startSegmentVericesIndex)
+                    vertices[index] += startTranslation;
+                hasCorner = true;
+            }
+
+            if (endHasCorner)
+            {
                 segment.endSegmentCenter += endTranslation;
-
-                // Change segment vertices location by translation
                 foreach (int index in segment.endSegmentVericesIndex)
                     vertices[index] += endTranslation;
             }
