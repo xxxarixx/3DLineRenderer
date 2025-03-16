@@ -2,12 +2,21 @@ using UnityEditor;
 using UnityEditor.EditorTools;
 using UnityEngine;
 using LineRenderer3D;
+using UnityEditor.ShortcutManagement;
 
 namespace LinerRenderer3D.Datas.Editor
 {
+
+
     [EditorTool("Path manipulator", typeof(LineRenderer3DExe))]
     public class LRConfigEditor : EditorTool
     {
+        [Shortcut("Active LR3D Path Manipulator", KeyCode.D)]
+        static void Active3DLRPath()
+        {
+            if(Selection.GetFiltered<LineRenderer3DExe>(SelectionMode.TopLevel).Length > 0)
+                ToolManager.SetActiveTool<LRConfigEditor>();
+        }
         public override void OnToolGUI(EditorWindow window)
         {
             if (window is not SceneView)
