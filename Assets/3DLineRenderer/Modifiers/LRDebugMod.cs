@@ -168,9 +168,9 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
 
                 // Visualize initial start and end segment center
                 Gizmos.color = Color.blue;
-                Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initStartSegmentCenter), Vector3.one * _vertexGizmosSize);
+                Gizmos.DrawCube((segmentInfo.initStartSegmentCenter), Vector3.one * _vertexGizmosSize);
                 Gizmos.color = Color.white;
-                Gizmos.DrawCube(transform.TransformPoint(segmentInfo.initEndSegmentCenter), Vector3.one * _vertexGizmosSize);
+                Gizmos.DrawCube((segmentInfo.initEndSegmentCenter), Vector3.one * _vertexGizmosSize);
             }
 
             // Visualize Uvs

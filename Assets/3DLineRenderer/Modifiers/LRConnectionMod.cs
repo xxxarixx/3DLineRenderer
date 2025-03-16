@@ -1,4 +1,5 @@
 using LineRenderer3D.Datas;
+using LinerRenderer3D.Datas;
 using System.Collections.Generic;
 using UnityEngine;
 using static LineRenderer3D.Datas.LRData;
@@ -15,7 +16,7 @@ namespace LineRenderer3D.Mods
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
         [SerializeField] 
-        [Range(0.5f, 2.5f)] 
+        [Range(-1f, 1f)] 
         float autoAnglerMultiplayer;
 
         [Tooltip("More means better quality but in cost of performance. ")]
@@ -114,18 +115,13 @@ namespace LineRenderer3D.Mods
             }
             else
             {
-                A = segmentInfos[segmentIndex - 1].startSegmentCenter;
+                A = segmentInfos[segmentIndex - 1].endSegmentCenter;
                 B = segmentInfos[segmentIndex].initStartSegmentCenter;
-                C = segmentInfos[segmentIndex + 1].endSegmentCenter;
+                C = segmentInfos[segmentIndex].startSegmentCenter;
             }
 
-            // Auto adjust distance control point multiplayer based on the angle between segments
-            float cornerAngle = LineRenderer3DExtenction.GetAngleBetweenVectors(A, B, C);
-            // Normalize the angle to the range [0, 360]
-            cornerAngle = Mathf.Repeat(cornerAngle, 360f);
-
-            // Map the angle to a value between 0 and 1
-            _distanceControlPointMultiplayer = ((Mathf.Cos(cornerAngle * Mathf.Deg2Rad)) / 2f) * autoAnglerMultiplayer;
+            // Auto adjust control point based on the angle between segments
+            _distanceControlPointMultiplayer = GetDistanceMultiplayerFromAngle(LineRenderer3DExtenction.GetAngleBetweenVectors(A, B, C));
 
             Vector3 dirToA = (A - B).normalized;
             Vector3 dirToC = (C - B).normalized;
@@ -199,6 +195,18 @@ namespace LineRenderer3D.Mods
             }
         }
 
+        float GetDistanceMultiplayerFromAngle(float angle)
+        {
+            // Clamp the angle to the specified range
+            float clampedAngle = Mathf.Clamp(angle, 0f, 180f);
+
+            // Normalize the angle to a 0-1 range
+            float t = Mathf.InverseLerp(0f, 180f, clampedAngle);
+
+            // Invert the normalized value (1 - t) and map to the value range
+            return Mathf.Lerp(1f, 0f, t);
+        }
+
         /// <summary>
         /// Adjusts the vertices of the segment to create space for a corner.
         /// </summary>
@@ -258,7 +266,7 @@ namespace LineRenderer3D.Mods
             }
 
             // Ensure the remaining length is at least twice the radius to prevent overlap
-            float minLength = data.Config.Radius * 2f;
+            float minLength = data.Config.SegmentMinLength;
             if (remainingLength < minLength)
             {
                 // Adjust distances proportionally
@@ -300,6 +308,7 @@ namespace LineRenderer3D.Mods
 
         /// <summary>
         /// Determines if three points form a corner based on the cross product of their vectors.
+        /// (BUG) HERE IS THE BUG WITH DISAPPEARING CONNECTIONS
         /// </summary>
         bool ArePointsFormingCorner(Vector3 a, Vector3 b, Vector3 c, float tolerance = 0.0001f)
         {

@@ -39,6 +39,8 @@ namespace LinerRenderer3D.Datas
             }
         }
 
+        public float SegmentMinLength => 2 * Radius;
+
         public List<Vector3> Points = new();
     }
 }

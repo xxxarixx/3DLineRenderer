@@ -44,16 +44,6 @@ namespace LineRenderer3D.Mods
             // Calculate the angle between the vectors
             float angle = Vector3.Angle(AB, BC);
 
-            // Cross product to determine the direction
-            Vector3 cross = Vector3.Cross(AB, BC);
-
-            // Check the direction of the cross product (positive or negative angle)
-            float dot = Vector3.Dot(cross, Vector3.up);
-            if (dot < 0)
-            {
-                angle = -angle;
-            }
-
             return angle;
         }
     }
