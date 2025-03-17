@@ -73,7 +73,6 @@ namespace LineRenderer3D.Mods
                 // Change current segments to make distance for corner
                 MakeDistanceForCorner(segmentID: s, data, ref vertices, ref segmentInfos, out bool hasCorner);
 
-
                 if (!hasCorner || s == 0)
                     continue;
 
@@ -87,7 +86,7 @@ namespace LineRenderer3D.Mods
         /// <param name="segmentIndex">The index of the current segment.</param>
         void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            if(segmentIndex >= segmentInfos.Count - 1 && segmentInfos.Count >= data.Config.Points.Count)
+            if(segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.Points.Count)
                 return;
 
             SegmentInfo currentSegment = segmentInfos[segmentIndex];
@@ -263,42 +262,51 @@ namespace LineRenderer3D.Mods
 
             // Ensure the remaining length is at least twice the radius to prevent overlap
             float minLength = data.Config.SegmentMinLength;
+            float totalAdjustment = originalLength - minLength;
             if (remainingLength < minLength)
             {
                 // Adjust distances proportionally
-                float totalAdjustment = originalLength - minLength;
-                if (totalAdjustment <= 0) return; // Not enough to adjust
+                if (totalAdjustment > 0)
+                {
+                    // Not enough to adjust
+                    if (startHasCorner && endHasCorner)
+                    {
+                        float adjustRatio = totalAdjustment / (2 * _distance);
+                        startTranslation *= adjustRatio;
+                        endTranslation *= adjustRatio;
+                    }
+                    else if (startHasCorner)
+                    {
+                        startTranslation = (segment.endSegmentCenter - segment.startSegmentCenter).normalized * totalAdjustment;
+                    }
+                    else if (endHasCorner)
+                    {
+                        endTranslation = (segment.startSegmentCenter - segment.endSegmentCenter).normalized * totalAdjustment;
+                    }
+                }
 
-                if (startHasCorner && endHasCorner)
-                {
-                    float adjustRatio = totalAdjustment / (2 * _distance);
-                    startTranslation *= adjustRatio;
-                    endTranslation *= adjustRatio;
-                }
-                else if (startHasCorner)
-                {
-                    startTranslation = (segment.endSegmentCenter - segment.startSegmentCenter).normalized * totalAdjustment;
-                }
-                else if (endHasCorner)
-                {
-                    endTranslation = (segment.startSegmentCenter - segment.endSegmentCenter).normalized * totalAdjustment;
-                }
             }
 
             // Apply translations
             if (startHasCorner)
             {
-                segment.startSegmentCenter += startTranslation;
-                foreach (int index in segment.startSegmentVericesIndex)
-                    vertices[index] += startTranslation;
+                if(totalAdjustment > 0)
+                {
+                    segment.startSegmentCenter += startTranslation;
+                    foreach (int index in segment.startSegmentVericesIndex)
+                        vertices[index] += startTranslation;
+                }
                 hasCorner = true;
             }
 
             if (endHasCorner)
             {
-                segment.endSegmentCenter += endTranslation;
-                foreach (int index in segment.endSegmentVericesIndex)
-                    vertices[index] += endTranslation;
+                if(totalAdjustment > 0)
+                {
+                    segment.endSegmentCenter += endTranslation;
+                    foreach (int index in segment.endSegmentVericesIndex)
+                        vertices[index] += endTranslation;
+                }
             }
         }
 
@@ -312,7 +320,7 @@ namespace LineRenderer3D.Mods
             Vector3 bc = c - b;
 
             // Need minimum segment length to avoid false positives
-            if (ab.magnitude < 0.1f || bc.magnitude < 0.1f) return false;
+            //if (ab.magnitude < 0.1f || bc.magnitude < 0.1f) return false;
 
             Vector3 crossProduct = Vector3.Cross(ab.normalized, bc.normalized);
             return crossProduct.sqrMagnitude > tolerance * tolerance;
