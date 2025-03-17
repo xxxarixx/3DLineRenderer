@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: df442662f9a99224492a34971575a942, type: 3}
-  m_Name: LRConfig_DistanceBug
+  m_Name: LRConfig_TwistBug
   m_EditorClassIdentifier: 
-  _numberOfFaces: 8
+  _numberOfFaces: 20
   _radius: 0.1
   Points:
-  - {x: 0, y: 0, z: 0}
-  - {x: 1.7, y: 0, z: 0}
-  - {x: -0.75, y: 2.48, z: 0}
-  - {x: -3.39, y: -1.4, z: 3.1}
-  - {x: -1.19, y: -0, z: 3.88}
-  - {x: -1.04, y: 0.59, z: 3.88}
-  - {x: -3.48, y: -0.14, z: 2.22}
-  - {x: -2.19, y: -0.14, z: 2.22}
+  - {x: -0.18628454, y: 0.23068905, z: -1.1140375}
+  - {x: 1.7411675, y: 0.11869009, z: 0}
+  - {x: -0.5345542, y: -1.5604783, z: 0}
+  - {x: -1.4232502, y: -1, z: 3.25}
+  - {x: -1.5821193, y: -1, z: 2.8624904}
+  - {x: -1.7180939, y: -0.7175298, z: 3.88}
+  - {x: -3.48, y: -0.75, z: 2.22}
+  - {x: -1.8044964, y: -1.0550702, z: 2.342412}
