@@ -31,6 +31,8 @@ namespace LineRenderer3D.Datas
         {
             public readonly string uniqueId;
 
+            public Quaternion rotation;
+
             [Header("Start veriables")]
             public Vector3 startSegmentCenter;
 
@@ -74,8 +76,24 @@ namespace LineRenderer3D.Datas
             int numberOfFaces = Config.NumberOfFaces;
             Vector3 direction = (end - start).normalized;
             if (direction == Vector3.zero) return null;
+            Vector3 worldUp = Vector3.up;
 
-            Quaternion rotation = Quaternion.LookRotation(direction);
+            // Handle the case where direction is parallel to worldUp
+            if (Mathf.Abs(Vector3.Dot(direction, worldUp)) > 0.9999f)
+            {
+                // Use an alternative reference axis (e.g., forward) to compute right
+                Vector3 alternativeReference = Vector3.forward;
+                Vector3 right = Vector3.Cross(direction, alternativeReference).normalized;
+                worldUp = Vector3.Cross(right, direction).normalized;
+            }
+            else
+            {
+                // Compute right and up vectors using standard method
+                Vector3 right = Vector3.Cross(worldUp, direction).normalized;
+                worldUp = Vector3.Cross(direction, right).normalized;
+            }
+
+            Quaternion rotation = Quaternion.LookRotation(direction, worldUp);
             Vector3 startCenter = start + rotation * Vector3.zero;
             Vector3 endCenter = end + rotation * Vector3.zero;
 
@@ -94,12 +112,12 @@ namespace LineRenderer3D.Datas
             {
                 startSegmentVericesIndex = startSegmentVericesIndex,
                 endSegmentVericesIndex = endSegmentVericesIndex,
+                rotation = rotation
             };
             return segmentInfo;
         }
 
         public bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < _segmentInfos.Count;
-
 
         /// <summary>
         /// Generates a cylinder between two points and adds it to the mesh data.
@@ -112,9 +130,24 @@ namespace LineRenderer3D.Datas
             float radius = Config.Radius;
             Vector3 direction = (end - start).normalized;
 
-            //if (direction == Vector3.zero) return;
+            Vector3 worldUp = Vector3.up;
+            
+            // Handle the case where direction is parallel to worldUp
+            if (Mathf.Abs(Vector3.Dot(direction, worldUp)) > 0.9999f)
+            {
+                // Use an alternative reference axis (e.g., forward) to compute right
+                Vector3 alternativeReference = Vector3.forward;
+                Vector3 right = Vector3.Cross(direction, alternativeReference).normalized;
+                worldUp = Vector3.Cross(right, direction).normalized;
+            }
+            else
+            {
+                // Compute right and up vectors using standard method
+                Vector3 right = Vector3.Cross(worldUp, direction).normalized;
+                worldUp = Vector3.Cross(direction, right).normalized;
+            }
 
-            Quaternion rotation = Quaternion.LookRotation(direction);
+            Quaternion rotation = Quaternion.LookRotation(direction, worldUp);
 
             // Generate vertices for this segment
             for (int f = 0; f < numberOfFaces; f++)

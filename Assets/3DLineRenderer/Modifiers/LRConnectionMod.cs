@@ -1,5 +1,4 @@
 using LineRenderer3D.Datas;
-using LinerRenderer3D.Datas;
 using System.Collections.Generic;
 using UnityEngine;
 using static LineRenderer3D.Datas.LRData;
@@ -9,19 +8,20 @@ namespace LineRenderer3D.Mods
 {
     /// <summary>
     /// Modifies the connection between segments by adding a curve between them.<br/>
-    /// BUG LOG:<br/>
-    /// 1) (UV) There are some cases when distance veriable causes bugs, because it shrinkening segments and these segments have whole uv very packed and these causes UV visual bug. <br/>
-    /// 2) (SEGMENT) There are some cases when distance is very low it's working fine but when it's high it causes bugs, but keep in mind that when distance is low connection is poor nad visually ugly. <br/>
     /// </summary>
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
-        [Tooltip("More means better quality but in cost of performance. ")]
         int _pointsPerCurve = 5;
 
         [SerializeField]
         [Range(0.01f,0.5f)]
         [Tooltip("Adjusts the distance of the segment corners to create space for a smooth transition between segments.")]
         float _distance = 1f;
+
+        [SerializeField]
+        [Range(0.1f, 0.5f)]
+        [Tooltip("Its blend range between connection curve and cylinder start/end.")]
+        float blendRangeConnectionCylinder = 0.25f;
 
         [Header("Debug stuff")]
 
@@ -41,6 +41,8 @@ namespace LineRenderer3D.Mods
 
         readonly List<Vector3> connectionPoints = new();
 
+       
+
         public string Name => ToString();
 
         public bool IsEnabled => enabled;
@@ -57,7 +59,7 @@ namespace LineRenderer3D.Mods
                 foreach (var point in connectionPoints)
                     Gizmos.DrawWireSphere(point, _vertexGizmosSize / 2);
         }
-
+        
         public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
             if(segmentInfos.Count < 2)
@@ -80,6 +82,9 @@ namespace LineRenderer3D.Mods
             }
         }
 
+        [SerializeField]
+        Vector3 lastRotOffset;
+
         /// <summary>
         /// Creates connections between segments by generating vertices, normals, UVs, and triangles.
         /// </summary>
@@ -94,7 +99,6 @@ namespace LineRenderer3D.Mods
 
             int numberOfFaces = data.Config.NumberOfFaces;
             float radius = data.Config.Radius;
-            float _distanceControlPointMultiplayer = 0f;
 
             // A => Previous Point, B => Current Point, C => Next Point
             Vector3 A = Vector3.zero;
@@ -116,7 +120,7 @@ namespace LineRenderer3D.Mods
             }
 
             // Auto adjust control point based on the angle between segments
-            _distanceControlPointMultiplayer = GetDistanceMultiplayerFromAngle(LineRenderer3DExtenction.GetAngleBetweenVectors(A, B, C));
+            float distanceControlPointMultiplayer = GetDistanceMultiplayerFromAngle(LineRenderer3DExtenction.GetAngleBetweenVectors(A, B, C));
 
             Vector3 dirToA = (A - B).normalized;
             Vector3 dirToC = (C - B).normalized;
@@ -125,23 +129,36 @@ namespace LineRenderer3D.Mods
             Vector3 prevEndCenter = previousSegment.endSegmentCenter;
             Vector3 currStartCenter = currentSegment.startSegmentCenter;
 
-            Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (_distance * _distanceControlPointMultiplayer);
+            Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (_distance * distanceControlPointMultiplayer);
             helpControlPoints.Add(helpControlPoint);
 
             int initialVerticesCount = vertices.Count;
 
             // Generate vertices for the connection curve
-            for (int p = 1; p < _pointsPerCurve; p++)
+            for (int p = 0; p < _pointsPerCurve; p++)
             {
                 float t = p / (float)(_pointsPerCurve - 1);
                 Vector3 centralPoint = QuadraticBezier(prevEndCenter, helpControlPoint, currStartCenter, t);
                 Vector3 tangent = QuadraticBezierDerivative(prevEndCenter, helpControlPoint, currStartCenter, t).normalized;
+                // Smooth rotation by using previous up direction
                 Quaternion rotation = Quaternion.LookRotation(tangent);
+                // TODO: there is still a little bug/issue with rotation when angle is very sharp.
+                if (t < 0.5f)
+                {
+                    float blendFactor = t / blendRangeConnectionCylinder;
+                    rotation = Quaternion.Lerp(previousSegment.rotation, rotation, blendFactor);
+                }
+                else
+                {
+                    float blendFactor = (t - (1 - blendRangeConnectionCylinder)) / blendRangeConnectionCylinder;
+                    rotation = Quaternion.Lerp(rotation, currentSegment.rotation, blendFactor);
+                }
 
                 for (int f = 0; f < numberOfFaces; f++)
                 {
+                    // TODO: try to lerp points so that last will connect with segment start
                     float theta = Mathf.PI * 2 * f / numberOfFaces;
-                    Vector3 circleOffset = new Vector3(
+                    Vector3 circleOffset = new(
                         Mathf.Cos(theta) * radius,
                         Mathf.Sin(theta) * radius,
                         0
@@ -158,14 +175,16 @@ namespace LineRenderer3D.Mods
                     else
                         uvs.Add(new Vector2(((float)f / numberOfFaces) * 2f, 1 - t));
                 }
+                
             }
 
             // Generate triangles between segments
             for (int i = 0; i < numberOfFaces; i++)
             {
                 int nextI = (i + 1) % numberOfFaces;
+                
 
-                for (int p = 0; p < _pointsPerCurve - 1; p++)
+                for (int p = 0; p < _pointsPerCurve; p++)
                 {
                     int currentP = p;
                     int nextP = p + 1;
@@ -177,15 +196,17 @@ namespace LineRenderer3D.Mods
                     // Next ring indices
                     int nextA = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, i, nextP);
                     int nextB = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, nextI, nextP);
+                    if (p != _pointsPerCurve - 1)
+                    {
+                        // Create two triangles per quad
+                        triangles.Add(currentA);
+                        triangles.Add(currentB);
+                        triangles.Add(nextA);
 
-                    // Create two triangles per quad
-                    triangles.Add(currentA);
-                    triangles.Add(currentB);
-                    triangles.Add(nextA);
-
-                    triangles.Add(nextA);
-                    triangles.Add(currentB);
-                    triangles.Add(nextB);
+                        triangles.Add(nextA);
+                        triangles.Add(currentB);
+                        triangles.Add(nextB);
+                    }
                 }
             }
         }
@@ -331,14 +352,14 @@ namespace LineRenderer3D.Mods
         /// </summary>
         int GetRingIndex(SegmentInfo prevSeg, SegmentInfo currSeg, int initialVertices, int faces, int faceIndex, int ring)
         {
-            if (ring == 0) // Previous segment's end
+           /* if (ring == 0) // Previous segment's end
                 return prevSeg.endSegmentVericesIndex[faceIndex];
 
             if (ring == _pointsPerCurve - 1) // Current segment's start
-                return currSeg.startSegmentVericesIndex[faceIndex];
+                return currSeg.startSegmentVericesIndex[faceIndex];*/
 
             // New connection vertices: initialVertices + (ring-1)*faces + faceIndex
-            return initialVertices + (ring - 1) * faces + faceIndex;
+            return initialVertices + (ring) * faces + faceIndex;
         }
 
         /// <param name="t">Interpolation parameter (0 to 1).</param>

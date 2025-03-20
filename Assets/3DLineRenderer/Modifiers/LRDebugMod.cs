@@ -37,6 +37,7 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
         Normals = 0b10,
         SegmentsInfo = 0b100,
         UV = 0b1000,
+        Directions = 0b10000
     }
 
     public void ManipulateMesh(LRData data, ref List<LRData.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
@@ -104,6 +105,7 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
             bool visualizeNormals = (debugGizmos & DebugGizmos.Normals) != 0;
             bool visualizeSegmentsInfo = (debugGizmos & DebugGizmos.SegmentsInfo) != 0;
             bool visualizeUV = (debugGizmos & DebugGizmos.UV) != 0;
+            bool visualizeDirection = (debugGizmos & DebugGizmos.Directions) != 0;
 
             // Visualize normals
             if (visualizeNormals)
@@ -171,6 +173,17 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
                 Gizmos.DrawCube((segmentInfo.initStartSegmentCenter), Vector3.one * _vertexGizmosSize);
                 Gizmos.color = Color.white;
                 Gizmos.DrawCube((segmentInfo.initEndSegmentCenter), Vector3.one * _vertexGizmosSize);
+            }
+
+            if (visualizeDirection && _segmentInfos != null)
+            {
+                foreach (var segment in _segmentInfos)
+                {
+                    Gizmos.color = Color.red;
+                    Gizmos.DrawRay(segment.startSegmentCenter, segment.initStartSegmentCenter - segment.startSegmentCenter);
+                    Gizmos.color = Color.blue;
+                    Gizmos.DrawRay(segment.endSegmentCenter, segment.initEndSegmentCenter - segment.endSegmentCenter);
+                }
             }
 
             // Visualize Uvs

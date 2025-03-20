@@ -10,14 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: df442662f9a99224492a34971575a942, type: 3}
-  m_Name: LRConfig
+  m_Name: LRConfig_TwistBug 1
   m_EditorClassIdentifier: 
-  _numberOfFaces: 8
+  _numberOfFaces: 19
   _radius: 0.1
   Points:
-  - {x: 1.849392, y: 0, z: -0.05494082}
-  - {x: 0.39408705, y: -0.36, z: -2.045104}
-  - {x: -0.05943454, y: -1.19, z: -0.27395117}
-  - {x: -0.05943454, y: -1.19, z: -0.27395117}
-  - {x: -3.06, y: -1.19, z: -0.27395117}
-  - {x: -2.16, y: -1.19, z: -0.27395117}
+  - {x: -2.1826758, y: -0.93004525, z: -0.75278085}
+  - {x: -2.0221722, y: -1.9479018, z: -0.8356209}
+  - {x: 1.3467529, y: -1.94, z: -0.8125925}
+  - {x: -0.1908639, y: -0.3, z: -0.95}
