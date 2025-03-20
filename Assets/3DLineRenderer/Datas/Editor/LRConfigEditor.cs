@@ -4,6 +4,8 @@ using UnityEngine;
 using LineRenderer3D;
 using LineRenderer3D.Datas;
 using UnityEditor.ShortcutManagement;
+using System;
+using UnityEditor.Experimental.GraphView;
 
 namespace LinerRenderer3D.Datas.Editor
 {
@@ -56,9 +58,16 @@ namespace LinerRenderer3D.Datas.Editor
 
                         // Draw the position handle for the point
                         Quaternion rotation = Quaternion.identity;
-                        if(i > 0)
+                        if (i == config.Points.Count - 1)
                             rotation = Quaternion.LookRotation((point - config.Points[i - 1]).normalized);
-
+                        else if (i > 0)
+                            rotation = Quaternion.LookRotation(-(point - config.Points[i - 1]).normalized);
+                        else
+                        {
+                            LRData.SegmentInfo segmentInfo = exe.Data.GetSegmentInfo(i);
+                            var dir = (segmentInfo.startSegmentCenter - segmentInfo.endSegmentCenter).normalized;
+                            rotation = Quaternion.LookRotation(dir);
+                        }
                         point = Handles.PositionHandle(point, rotation);
 
                         if (EditorGUI.EndChangeCheck())
