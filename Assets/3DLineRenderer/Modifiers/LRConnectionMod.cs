@@ -99,7 +99,6 @@ namespace LineRenderer3D.Mods
 
             int numberOfFaces = data.Config.NumberOfFaces;
             float radius = data.Config.Radius;
-            float _distanceControlPointMultiplayer = 0f;
 
             // A => Previous Point, B => Current Point, C => Next Point
             Vector3 A = Vector3.zero;
@@ -121,7 +120,7 @@ namespace LineRenderer3D.Mods
             }
 
             // Auto adjust control point based on the angle between segments
-            _distanceControlPointMultiplayer = GetDistanceMultiplayerFromAngle(LineRenderer3DExtenction.GetAngleBetweenVectors(A, B, C));
+            float distanceControlPointMultiplayer = GetDistanceMultiplayerFromAngle(LineRenderer3DExtenction.GetAngleBetweenVectors(A, B, C));
 
             Vector3 dirToA = (A - B).normalized;
             Vector3 dirToC = (C - B).normalized;
@@ -130,7 +129,7 @@ namespace LineRenderer3D.Mods
             Vector3 prevEndCenter = previousSegment.endSegmentCenter;
             Vector3 currStartCenter = currentSegment.startSegmentCenter;
 
-            Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (_distance * _distanceControlPointMultiplayer);
+            Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (_distance * distanceControlPointMultiplayer);
             helpControlPoints.Add(helpControlPoint);
 
             int initialVerticesCount = vertices.Count;
@@ -143,7 +142,8 @@ namespace LineRenderer3D.Mods
                 Vector3 tangent = QuadraticBezierDerivative(prevEndCenter, helpControlPoint, currStartCenter, t).normalized;
                 // Smooth rotation by using previous up direction
                 Quaternion rotation = Quaternion.LookRotation(tangent);
-                if (t < blendRangeConnectionCylinder)
+                // TODO: there is still a little bug/issue with rotation when angle is very sharp.
+                if (t < 0.5f)
                 {
                     float blendFactor = t / blendRangeConnectionCylinder;
                     rotation = Quaternion.Lerp(previousSegment.rotation, rotation, blendFactor);
@@ -153,7 +153,6 @@ namespace LineRenderer3D.Mods
                     float blendFactor = (t - (1 - blendRangeConnectionCylinder)) / blendRangeConnectionCylinder;
                     rotation = Quaternion.Lerp(rotation, currentSegment.rotation, blendFactor);
                 }
-                Debug.Log(rotation.eulerAngles);
 
                 for (int f = 0; f < numberOfFaces; f++)
                 {
