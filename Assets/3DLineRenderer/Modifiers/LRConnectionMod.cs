@@ -11,7 +11,7 @@ namespace LineRenderer3D.Mods
     /// </summary>
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
-        int _pointsPerCurve = 5;
+        int _pointsPerCurve;
 
         [SerializeField]
         [Range(0.01f,0.5f)]
@@ -32,16 +32,11 @@ namespace LineRenderer3D.Mods
         bool _visualizeConnectionPoints;
 
         [SerializeField] 
-        bool _visualizeDirections;
-
-        [SerializeField] 
         float _vertexGizmosSize = 0.1f;
 
         readonly List<Vector3> helpControlPoints = new();
 
         readonly List<Vector3> connectionPoints = new();
-
-       
 
         public string Name => ToString();
 
@@ -49,11 +44,13 @@ namespace LineRenderer3D.Mods
 
         void OnDrawGizmos()
         {
+            // Control Points
             Gizmos.color = Color.cyan;
             if (_visualizeControlPoints)
                 foreach (var point in helpControlPoints)
                     Gizmos.DrawSphere(point, _vertexGizmosSize);
 
+            // Connection Points
             Gizmos.color = Color.yellow;
             if (_visualizeConnectionPoints)
                 foreach (var point in connectionPoints)
@@ -62,7 +59,8 @@ namespace LineRenderer3D.Mods
         
         public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            if(segmentInfos.Count < 2)
+            // It's not possible to have angle with less than 2 segments
+            if (segmentInfos.Count < 2)
                 return;
 
             // Prepare lists to new LR
@@ -81,9 +79,6 @@ namespace LineRenderer3D.Mods
                 CreateConnections(segmentIndex: s, data, segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
             }
         }
-
-        [SerializeField]
-        Vector3 lastRotOffset;
 
         /// <summary>
         /// Creates connections between segments by generating vertices, normals, UVs, and triangles.
@@ -104,7 +99,6 @@ namespace LineRenderer3D.Mods
             Vector3 A = Vector3.zero;
             Vector3 B = Vector3.zero;
             Vector3 C = Vector3.zero;
-
 
             if (data.Config.Points.Count > segmentInfos.Count)
             {
@@ -156,19 +150,20 @@ namespace LineRenderer3D.Mods
 
                 for (int f = 0; f < numberOfFaces; f++)
                 {
-                    // TODO: try to lerp points so that last will connect with segment start
-                    float theta = Mathf.PI * 2 * f / numberOfFaces;
+                    float theta = PI2 * f / numberOfFaces;
                     Vector3 circleOffset = new(
                         Mathf.Cos(theta) * radius,
                         Mathf.Sin(theta) * radius,
                         0
                     );
 
+                    // Vertexes
                     Vector3 vertexPos = centralPoint + rotation * circleOffset;
                     vertices.Add(transform.InverseTransformPoint(vertexPos));
                     connectionPoints.Add(vertexPos);
-
+                    // Normals
                     normals.Add((vertexPos - centralPoint).normalized);
+
                     // UV mapping
                     if (f > numberOfFaces / 2)
                         uvs.Add(new Vector2(2f - ((float)f / numberOfFaces) * 2f, 1 - t));
@@ -190,12 +185,12 @@ namespace LineRenderer3D.Mods
                     int nextP = p + 1;
 
                     // Current ring indices
-                    int currentA = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, i, currentP);
-                    int currentB = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, nextI, currentP);
+                    int currentA = GetRingIndex(initialVerticesCount, numberOfFaces, i, currentP);
+                    int currentB = GetRingIndex(initialVerticesCount, numberOfFaces, nextI, currentP);
 
                     // Next ring indices
-                    int nextA = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, i, nextP);
-                    int nextB = GetRingIndex(previousSegment, currentSegment, initialVerticesCount, numberOfFaces, nextI, nextP);
+                    int nextA = GetRingIndex(initialVerticesCount, numberOfFaces, i, nextP);
+                    int nextB = GetRingIndex(initialVerticesCount, numberOfFaces, nextI, nextP);
                     if (p != _pointsPerCurve - 1)
                     {
                         // Create two triangles per quad
@@ -333,15 +328,11 @@ namespace LineRenderer3D.Mods
 
         /// <summary>
         /// Determines if three points form a corner based on the cross product of their vectors.
-        /// (BUG) HERE IS THE BUG WITH DISAPPEARING CONNECTIONS
         /// </summary>
         bool ArePointsFormingCorner(Vector3 a, Vector3 b, Vector3 c, float tolerance = 0.0001f)
         {
             Vector3 ab = b - a;
             Vector3 bc = c - b;
-
-            // Need minimum segment length to avoid false positives
-            //if (ab.magnitude < 0.1f || bc.magnitude < 0.1f) return false;
 
             Vector3 crossProduct = Vector3.Cross(ab.normalized, bc.normalized);
             return crossProduct.sqrMagnitude > tolerance * tolerance;
@@ -350,15 +341,9 @@ namespace LineRenderer3D.Mods
         /// <summary>
         /// Gets the index of a vertex in a ring of vertices, used for generating triangles.
         /// </summary>
-        int GetRingIndex(SegmentInfo prevSeg, SegmentInfo currSeg, int initialVertices, int faces, int faceIndex, int ring)
+        int GetRingIndex(int initialVertices, int faces, int faceIndex, int ring)
         {
-           /* if (ring == 0) // Previous segment's end
-                return prevSeg.endSegmentVericesIndex[faceIndex];
-
-            if (ring == _pointsPerCurve - 1) // Current segment's start
-                return currSeg.startSegmentVericesIndex[faceIndex];*/
-
-            // New connection vertices: initialVertices + (ring-1)*faces + faceIndex
+            // New connection vertices: initialVertices + (ring)*faces + faceIndex
             return initialVertices + (ring) * faces + faceIndex;
         }
 
@@ -366,16 +351,16 @@ namespace LineRenderer3D.Mods
         /// <returns>The point on the Bezier curve.</returns>
         Vector3 QuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
         {
-            t = Mathf.Clamp01(t);
+            t = clamp(t, 0, 1);
             float u = 1 - t;
-            return (u * u) * p0 + (2 * u * t) * p1 + (t * t) * p2;
+            return pow(u,2)* p0 + (2 * u * t) * p1 + (t * t) * p2;
         }
 
         /// <param name="t">Interpolation parameter (0 to 1).</param>
         /// <returns>The derivative of the Bezier curve.</returns>
         Vector3 QuadraticBezierDerivative(Vector3 p0, Vector3 p1, Vector3 p2, float t)
         {
-            t = Mathf.Clamp01(t);
+            t = clamp(t, 0, 1);
             return 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
         }
     }
