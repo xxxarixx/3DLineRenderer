@@ -204,6 +204,8 @@ namespace LineRenderer3D.Datas
 
         public Vector3 GetVertex(int index) => _vertices[index];
 
+        public SegmentInfo GetSegmentInfo(int index) => _segmentInfos[index];
+
         /// <summary>
         /// Adds a SegmentInfo object to the list of segment information.
         /// </summary>

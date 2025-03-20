@@ -42,5 +42,12 @@ namespace LinerRenderer3D.Datas
         public float SegmentMinLength => 2 * Radius;
 
         public List<Vector3> Points = new();
+
+        [Header("Editor")]
+        /// <summary>
+        /// Threshold for displaying the buttons and move pivolts near the points
+        /// </summary>  
+        
+        public float DisplayThreshold = 2f;
     }
 }
