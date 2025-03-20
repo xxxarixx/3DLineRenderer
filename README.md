@@ -30,6 +30,8 @@ Before issue =======================> After solution:<br>
 Before issue =======================> After solution:<br>
 <img src="ReadmeAssets/Bugged.png" width=250 height=250 align='left'> 
 <img src="ReadmeAssets/BugFixed.png" width=250 height=250 ><br>
+##### :heavy_check_mark:  Editor<br>
+<img src="ReadmeAssets/Editor.png" width=350 height=250> <br> 
 - [ ] Make runtime friendly<br>
 - [ ] First visualization demo<br>
 - [ ] Optimalisation with using Unity Jobs and Advanced Mesh API with Multi-Stream Approach, <a href="https://catlikecoding.com/unity/tutorials/procedural-meshes/creating-a-mesh/">great blog about that</a><br>
