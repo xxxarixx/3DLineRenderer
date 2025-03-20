@@ -22,10 +22,14 @@ Before issue =======================> After solution:<br>
 <img src="ReadmeAssets/autolineSpliting.png" width=250 height=250 align='left'>
 <img src="ReadmeAssets/autolineSplitingSolved.png" width=250 height=250> <br>
 ##### :heavy_check_mark: Make caps on the end<br>
+Before issue =======================> After solution:<br>
 <img src="ReadmeAssets/PipesCap.png" width=250 height=250 align='left'> 
 <img src="ReadmeAssets/PipesCapSolved.png" width=250 height=250 ><br>
 
-- [ ] Fix some bugs<br>
+##### :heavy_check_mark:  Fix some bugs<br>
+Before issue =======================> After solution:<br>
+<img src="ReadmeAssets/Bugged.png" width=250 height=250 align='left'> 
+<img src="ReadmeAssets/BugFixed.png" width=250 height=250 ><br>
 - [ ] Make runtime friendly<br>
 - [ ] First visualization demo<br>
 - [ ] Optimalisation with using Unity Jobs and Advanced Mesh API with Multi-Stream Approach, <a href="https://catlikecoding.com/unity/tutorials/procedural-meshes/creating-a-mesh/">great blog about that</a><br>
