@@ -31,6 +31,8 @@ namespace LineRenderer3D.Datas
         {
             public readonly string uniqueId;
 
+            public Quaternion rotation;
+
             [Header("Start veriables")]
             public Vector3 startSegmentCenter;
 
@@ -76,6 +78,9 @@ namespace LineRenderer3D.Datas
             if (direction == Vector3.zero) return null;
 
             Quaternion rotation = Quaternion.LookRotation(direction);
+            Vector3 up = Vector3.up;
+            up = Vector3.Lerp(Vector3.up, Vector3.back, Mathf.Abs(Vector3.Dot(up, direction)));
+            Quaternion rotation = Quaternion.LookRotation(direction, up);
             Vector3 startCenter = start + rotation * Vector3.zero;
             Vector3 endCenter = end + rotation * Vector3.zero;
 
@@ -94,6 +99,7 @@ namespace LineRenderer3D.Datas
             {
                 startSegmentVericesIndex = startSegmentVericesIndex,
                 endSegmentVericesIndex = endSegmentVericesIndex,
+                rotation = rotation
             };
             return segmentInfo;
         }
@@ -114,7 +120,9 @@ namespace LineRenderer3D.Datas
 
             //if (direction == Vector3.zero) return;
 
-            Quaternion rotation = Quaternion.LookRotation(direction);
+            Vector3 up = Vector3.up;
+            up = Vector3.Lerp(Vector3.up, Vector3.back, Mathf.Abs(Vector3.Dot(up, direction)));
+            Quaternion rotation = Quaternion.LookRotation(direction, up);
 
             // Generate vertices for this segment
             for (int f = 0; f < numberOfFaces; f++)
