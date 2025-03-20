@@ -77,7 +77,6 @@ namespace LineRenderer3D.Datas
             Vector3 direction = (end - start).normalized;
             if (direction == Vector3.zero) return null;
 
-            Quaternion rotation = Quaternion.LookRotation(direction);
             Vector3 up = Vector3.up;
             up = Vector3.Lerp(Vector3.up, Vector3.back, Mathf.Abs(Vector3.Dot(up, direction)));
             Quaternion rotation = Quaternion.LookRotation(direction, up);
