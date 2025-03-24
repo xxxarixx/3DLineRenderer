@@ -67,12 +67,12 @@ namespace LineRenderer3D
                 List<Vector3> normals = new();
                 List<Vector2> uvs = new();
                 List<int> triangles = new();
+                Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
 
                 foreach (var mod in _mods)
                     if (mod.IsEnabled)
                     {
                         Debug.Log($"Mod activated: {mod.Name}");
-                        Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
                         mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
                     }
                 Data.ApplayDataToMesh(ref _mesh, vertices, normals, uvs, triangles);
@@ -168,12 +168,12 @@ namespace LineRenderer3D
                 List<Vector3> normals = new();
                 List<Vector2> uvs = new();
                 List<int> triangles = new();
+                Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
 
                 foreach (var mod in _mods)
                     if (mod.IsEnabled)
                     {
                         Debug.Log($"Mod activated: {mod.Name}");
-                        Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
                         mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
                     }
                 Data.ApplayDataToMesh(ref _mesh, vertices, normals, uvs, triangles);

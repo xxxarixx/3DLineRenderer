@@ -76,6 +76,7 @@ namespace LineRenderer3D.Datas
         {
             foreach ((int index, LRConfig.DirtyFlag dirtyFlag) in Config.DirtyPoints)
             {
+                Debug.Log($"Update dirty point: {index} dirtyFlag:{dirtyFlag}");
                 Vector3 start;
                 Vector3 end;
                 switch (dirtyFlag)
