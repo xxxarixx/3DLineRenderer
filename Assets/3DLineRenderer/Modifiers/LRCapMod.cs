@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+/*using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using static LineRenderer3D.Datas.LRData;
@@ -144,4 +144,4 @@ namespace LineRenderer3D.Mods
             }
         }
     }
-}
+}*/

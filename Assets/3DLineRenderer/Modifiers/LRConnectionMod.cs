@@ -1,4 +1,4 @@
-using LineRenderer3D.Datas;
+/*using LineRenderer3D.Datas;
 using System.Collections.Generic;
 using UnityEngine;
 using static LineRenderer3D.Datas.LRData;
@@ -364,4 +364,4 @@ namespace LineRenderer3D.Mods
             return 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
         }
     }
-}
+}*/

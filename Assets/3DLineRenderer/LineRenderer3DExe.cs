@@ -50,7 +50,6 @@ namespace LineRenderer3D
                     PartialMeshUpdate();
                 Data.Config.ClearDirtyFlags();
             }
-            Debug.Log($"Dirty count {Data.Config.DirtyPoints.Count}");
         }
 
         void PartialMeshUpdate()
@@ -61,26 +60,21 @@ namespace LineRenderer3D
 #if UNITY_EDITOR
             UpdateMods();
 #endif
-            if (_mods.Count > 0)
+            // Applay mods to LR
+            foreach (var dirtyPoints in Data.Config.DirtyPoints)
             {
-                List<Vector3> vertices = new();
-                List<Vector3> normals = new();
-                List<Vector2> uvs = new();
-                List<int> triangles = new();
-                Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
+                int index = dirtyPoints.Item1;
 
                 foreach (var mod in _mods)
                     if (mod.IsEnabled)
                     {
                         Debug.Log($"Mod activated: {mod.Name}");
-                        mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
+                        mod.ManipulateMesh(Data, dirtyPoints.Item1, ref Data.SegmentInfos);
                     }
-                Data.ApplayDataToMesh(ref _mesh, vertices, normals, uvs, triangles);
             }
-            else
-            {
-                Data.ApplayDataToMesh(ref _mesh);
-            }
+
+
+            Data.ApplayDataToMesh(ref _mesh);
             _meshFilter.sharedMesh = _mesh;
         }
 
@@ -162,26 +156,17 @@ namespace LineRenderer3D
             }
 
             // Applay mods to LR
-            if (_mods.Count > 0)
+            foreach (var dirtyPoints in Data.Config.DirtyPoints)
             {
-                List<Vector3> vertices = new();
-                List<Vector3> normals = new();
-                List<Vector2> uvs = new();
-                List<int> triangles = new();
-                Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
-
+                int index = dirtyPoints.Item1;
                 foreach (var mod in _mods)
                     if (mod.IsEnabled)
                     {
                         Debug.Log($"Mod activated: {mod.Name}");
-                        mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
+                        mod.ManipulateMesh(Data, dirtyPoints.Item1, ref Data.SegmentInfos);
                     }
-                Data.ApplayDataToMesh(ref _mesh, vertices, normals, uvs, triangles);
             }
-            else
-            {
-                Data.ApplayDataToMesh(ref _mesh);
-            }
+
 
             Data.ApplayDataToMesh(ref _mesh);
             _meshFilter.sharedMesh = _mesh;

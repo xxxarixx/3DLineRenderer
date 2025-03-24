@@ -113,22 +113,26 @@ namespace LinerRenderer3D.Datas
 
         void MarkPointDirty(int index, DirtyFlag dirtyFlag)
         {
-            if(dirtyFlag == DirtyFlag.ChangedPosition)
-                DirtyPoints.Add((index, dirtyFlag));
+            
 
-            index = Mathf.Clamp(index, 0, PointsCount - 1);
-            var prevIndex = Mathf.Clamp(index - 1, 0, PointsCount - 1);
+            index = Mathf.Clamp(index, 0, PointsCount - 2);
+            var prevIndex = Mathf.Clamp(index - 1, 0, PointsCount - 2);
+
+            if (dirtyFlag == DirtyFlag.ChangedPosition)
+                DirtyPoints.Add((index, dirtyFlag));
 
             DirtyPoints.Add((prevIndex, dirtyFlag));
 
-            if(index > 0)
+            if (index > 0)
             {
-                if(dirtyFlag == DirtyFlag.Removed)
+                if (dirtyFlag == DirtyFlag.Removed)
                     DirtyPoints.Add((prevIndex, DirtyFlag.ChangedPosition));
-                if(dirtyFlag == DirtyFlag.Added)
+                if (dirtyFlag == DirtyFlag.Added)
                     DirtyPoints.Add((index, DirtyFlag.ChangedPosition));
             }
-            
+            if(index == PointsCount - 2)
+                if(dirtyFlag == DirtyFlag.Removed)
+                    DirtyPoints.Add((index, DirtyFlag.ChangedPosition));
 
         }
 

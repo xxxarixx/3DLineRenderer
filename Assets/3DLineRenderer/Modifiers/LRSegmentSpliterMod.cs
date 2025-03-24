@@ -1,4 +1,4 @@
-using LineRenderer3D.Datas;
+/*using LineRenderer3D.Datas;
 using LineRenderer3D.Mods;
 using System.Collections.Generic;
 using UnityEngine;
@@ -92,3 +92,4 @@ namespace LineRenderer3D.Mods
         }
     }
 }
+*/

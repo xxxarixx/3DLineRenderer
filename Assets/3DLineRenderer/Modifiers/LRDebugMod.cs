@@ -40,14 +40,21 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
         Directions = 0b10000
     }
 
-    public void ManipulateMesh(LRData data, ref List<LRData.SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+    public void ManipulateMesh(LRData data, int segmentIndex, ref List<LRData.SegmentInfo> segmentInfos)
     {
         _data = data;
         _segmentInfos = segmentInfos;
-        _vertices = vertices;
-        _normals = normals;
-        _uvs = uvs;
-        _triangles = triangles;
+        _vertices = new();
+        _normals = new();
+        _uvs = new();
+        _triangles = new();
+        foreach (var segment in _segmentInfos)
+        {
+            _vertices.AddRange(segment.vertices);
+            _normals.AddRange(segment.normals);
+            _uvs.AddRange(segment.uvs);
+            _triangles.AddRange(segment.triangles);
+        }
     }
 
     // Copied veriables from modifier to visualize them in gizmos.
