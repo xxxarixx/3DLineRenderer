@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df442662f9a99224492a34971575a942, type: 3}
   m_Name: LRConfig
   m_EditorClassIdentifier: 
-  _numberOfFaces: 7
+  _numberOfFaces: 18
   _radius: 0.1
-  DisplayThreshold: 5
+  DisplayThreshold: 10

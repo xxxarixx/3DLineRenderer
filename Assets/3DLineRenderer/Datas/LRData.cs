@@ -17,10 +17,6 @@ namespace LineRenderer3D.Datas
         public LRConfig Config;
 
         List<SegmentInfo> _segmentInfos;
-        List<Vector3> _vertices;
-        List<Vector3> _normals;
-        List<Vector2> _uvs;
-        List<int> _triangles;
 
         /// <summary>
         /// Contains valuable information about cylinder segment, like start and end center, and vertices index of start or end.
@@ -46,6 +42,14 @@ namespace LineRenderer3D.Datas
 
             public List<int> endSegmentVericesIndex = new();
 
+            public List<Vector3> vertices = new();
+
+            public List<Vector3> normals = new();
+            
+            public List<Vector2> uvs = new();
+
+            public List<int> triangles = new();
+
             public SegmentInfo(Vector3 startSegmentCenter, Vector3 endSegmentCenter)
             {
                 initStartSegmentCenter = startSegmentCenter;
@@ -70,26 +74,31 @@ namespace LineRenderer3D.Datas
 
         public void UpdateDirtyPoints()
         {
-            foreach ((int index,LRConfig.DirtyFlag dirtyFlag) in Config.DirtyPoints)
+            foreach ((int index, LRConfig.DirtyFlag dirtyFlag) in Config.DirtyPoints)
             {
                 Debug.Log($"dirty point ({index}), flag:{dirtyFlag}");
 
+                Vector3 start;
+                Vector3 end;
                 switch (dirtyFlag)
                 {
                     case LRConfig.DirtyFlag.ChangedPosition:
                         if (!IsCylinderIndexValid(index) || index > Config.PointsCount - 2)
                             continue;
-                        UpdateCylinder(index);
+                        GetStartEndCylinder(index, out start, out end);
+                        GenerateCylinder(start, end, index, false, isItUpdate: true);
                         UpdateSegment(index);
                         break;
                     case LRConfig.DirtyFlag.Removed:
-                        RemoveCylinder(index);
+                        Debug.Log($"Removed at {index}");
                         _segmentInfos.RemoveAt(index);
+                        UpdateNextSegmentsTriangles(index);
                         break;
                     case LRConfig.DirtyFlag.Added:
-                        GetStartEndCylinder(index, out Vector3 start, out Vector3 end);
+                        GetStartEndCylinder(index, out start, out end);
+                        _segmentInfos.Insert(index, GenerateSegmentInfo(start, end, index));
                         GenerateCylinder(start, end, index, false);
-                        AddSegmentInfo(GenerateSegmentInfo(start, end, index));
+                        UpdateNextSegmentsTriangles(index + 1);
                         break;
                     default:
                         break;
@@ -101,20 +110,20 @@ namespace LineRenderer3D.Datas
         {
             LrTransform = lrTransform;
             _segmentInfos = new();
-            _vertices = new();
-            _normals = new();
-            _uvs = new();
-            _triangles = new();
         }
 
         #region Data Manipulation
 
         public SegmentInfo GetSegmentInfo(int index) => _segmentInfos[index];
 
-        /// <summary>
-        /// Adds a SegmentInfo object to the list of segment information.
-        /// </summary>
-        public void AddSegmentInfo(SegmentInfo segmentInfo) => _segmentInfos.Add(segmentInfo);
+        public void UpdateNextSegmentsTriangles(int index) 
+        {
+            for (int i = index; i < _segmentInfos.Count; i++)
+            {
+                RegenerateCylinderTriangles(i);
+                Debug.Log($"Regenerated triangles for segment info {i}");
+            }
+        }
 
         void UpdateSegment(int pointIndex)
         {
@@ -146,6 +155,8 @@ namespace LineRenderer3D.Datas
             segmentInfo.rotation = rotation;
             _segmentInfos[pointIndex] = segmentInfo;
         }
+
+        public void AddSegmentInfo(SegmentInfo segment) => _segmentInfos.Add(segment);
 
         public SegmentInfo GenerateSegmentInfo(Vector3 start, Vector3 end, int cylinderIndex)
         {
@@ -194,72 +205,18 @@ namespace LineRenderer3D.Datas
         }
 
         public bool IsCylinderIndexValid(int cylinderIndex) => cylinderIndex >= 0 && cylinderIndex < _segmentInfos.Count;
-        
-        void UpdateCylinder(int pointIndex)
-        {
-            GetStartEndCylinder(pointIndex, out Vector3 start, out Vector3 end);
-                
-
-            Vector3 direction = (end - start).normalized;
-
-            Vector3 worldUp = Vector3.up;
-
-            // Handle the case where direction is parallel to worldUp
-            if (Mathf.Abs(Vector3.Dot(direction, worldUp)) > 0.9999f)
-            {
-                // Use an alternative reference axis (e.g., forward) to compute right
-                Vector3 alternativeReference = Vector3.forward;
-                Vector3 right = Vector3.Cross(direction, alternativeReference).normalized;
-                worldUp = Vector3.Cross(right, direction).normalized;
-            }
-            else
-            {
-                // Compute right and up vectors using standard method
-                Vector3 right = Vector3.Cross(worldUp, direction).normalized;
-                worldUp = Vector3.Cross(direction, right).normalized;
-            }
-
-            Quaternion rotation = Quaternion.LookRotation(direction, worldUp);
-
-            int numberOfFaces = Config.NumberOfFaces;
-            float radius = Config.Radius;
-            int startIndex = pointIndex * Config.NumberOfFaces * 2;
-
-            // Generate vertices for this segment
-            for (int f = 0; f < numberOfFaces; f++)
-            {
-                float theta = Mathf.PI * 2 * f / numberOfFaces;
-                Vector3 circleOffset = new(
-                    Mathf.Cos(theta) * radius,
-                    Mathf.Sin(theta) * radius,
-                    0
-                );
-
-                // Calculate positions in local space
-                Vector3 startVert = start + rotation * circleOffset;
-                Vector3 endVert = end + rotation * circleOffset;
-
-                int current = startIndex + f * 2;
-                _vertices[current] = startVert;
-                _vertices[current + 1] = endVert;
-
-                // Normals point outward from cylinder center
-                Vector3 normal = rotation * circleOffset.normalized;
-                _normals[current] = normal;
-                _normals[current + 1] = normal;
-            }
-        }
 
         /// <summary>
         /// Generates a cylinder between two points and adds it to the mesh data.
         /// </summary>
         /// <param name="cylinderIndex">The index of the cylinder, you must specify, in most cases it will be just segmentInfos.Count.</param>
         /// <param name="flipUV">Whether to flip the UV coordinates.</param>
-        public void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool flipUV)
+        public void GenerateCylinder(Vector3 start, Vector3 end, int cylinderIndex, bool flipUV, bool isItUpdate = false)
         {
             int numberOfFaces = Config.NumberOfFaces;
             float radius = Config.Radius;
             Vector3 direction = (end - start).normalized;
+            SegmentInfo segment = _segmentInfos[cylinderIndex];
 
             Vector3 worldUp = Vector3.up;
             
@@ -279,6 +236,13 @@ namespace LineRenderer3D.Datas
             }
 
             Quaternion rotation = Quaternion.LookRotation(direction, worldUp);
+            if(isItUpdate)
+            {
+                segment.vertices.Clear();
+                segment.normals.Clear();
+                segment.uvs.Clear();
+                segment.triangles.Clear();
+            }
 
             // Generate vertices for this segment
             for (int f = 0; f < numberOfFaces; f++)
@@ -294,26 +258,27 @@ namespace LineRenderer3D.Datas
                 Vector3 startVert = start + rotation * circleOffset;
                 Vector3 endVert = end + rotation * circleOffset;
 
-                _vertices.Add(startVert);
-                _vertices.Add(endVert);
+                segment.vertices.Add(startVert);
+                segment.vertices.Add(endVert);
 
                 // Normals point outward from cylinder center
                 Vector3 normal = rotation * circleOffset.normalized;
-                _normals.Add(normal);
-                _normals.Add(normal);
+                segment.normals.Add(normal);
+                segment.normals.Add(normal);
 
                 // UV mapping
                 if (f > numberOfFaces / 2)
                 {
-                    _uvs.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
-                    _uvs.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
+                    segment.uvs.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
+                    segment.uvs.Add(new Vector2(2f - (1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
                 }
                 else
                 {
-                    _uvs.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
-                    _uvs.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
+                    segment.uvs.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 1 : 0));
+                    segment.uvs.Add(new Vector2((1f / numberOfFaces * f) * 2f, flipUV ? 0 : 1));
                 }
             }
+
 
             // Generate triangles for this segment
             int baseIndex = cylinderIndex * numberOfFaces * 2;
@@ -322,27 +287,43 @@ namespace LineRenderer3D.Datas
                 int current = baseIndex + i * 2;
                 int next = baseIndex + ((i + 1) % numberOfFaces) * 2;
                 // First triangle
-                _triangles.Add(current);
-                _triangles.Add(next);
-                _triangles.Add(current + 1);
+                segment.triangles.Add(current);
+                segment.triangles.Add(next);
+                segment.triangles.Add(current + 1);
 
                 // Second triangle
-                _triangles.Add(next);
-                _triangles.Add(next + 1);
-                _triangles.Add(current + 1);
+                segment.triangles.Add(next);
+                segment.triangles.Add(next + 1);
+                segment.triangles.Add(current + 1);
             }
+
+            _segmentInfos[cylinderIndex] = segment;
         }
 
-        void RemoveCylinder(int cylinderIndex)
+        public void RegenerateCylinderTriangles(int cylinderIndex)
         {
             int numberOfFaces = Config.NumberOfFaces;
-            int baseIndex = cylinderIndex * numberOfFaces * 2;
-            int count = numberOfFaces * 2;
+            SegmentInfo segment = _segmentInfos[cylinderIndex];
+            segment.triangles.Clear();
 
-            _vertices.RemoveRange(baseIndex, count);
-            _normals.RemoveRange(baseIndex, count);
-            _uvs.RemoveRange(baseIndex, count);
-            _triangles.RemoveRange(baseIndex * 3, count * 3);
+            // Generate triangles for this segment
+            int baseIndex = cylinderIndex * numberOfFaces * 2;
+            for (int i = 0; i < numberOfFaces; i++)
+            {
+                int current = baseIndex + i * 2;
+                int next = baseIndex + ((i + 1) % numberOfFaces) * 2;
+                // First triangle
+                segment.triangles.Add(current);
+                segment.triangles.Add(next);
+                segment.triangles.Add(current + 1);
+
+                // Second triangle
+                segment.triangles.Add(next);
+                segment.triangles.Add(next + 1);
+                segment.triangles.Add(current + 1);
+            }
+
+            _segmentInfos[cylinderIndex] = segment;
         }
 
         public void GetStartEndCylinder(int cylinderIndex, out Vector3 start, out Vector3 end)
@@ -351,7 +332,7 @@ namespace LineRenderer3D.Datas
             end = LrTransform.InverseTransformPoint(Config.GetPoint(cylinderIndex + 1));
         }
 
-        public Vector3 GetVertex(int index) => _vertices[index];
+       // public Vector3 GetVertex(int index) => _vertices[index];
 
         /// <summary>
         /// Applies the mesh data to the given mesh.
@@ -359,20 +340,39 @@ namespace LineRenderer3D.Datas
         public void ApplayDataToMesh(ref Mesh mesh)
         {
             mesh.Clear();
-            mesh.vertices = _vertices.ToArray();
-            mesh.triangles = _triangles.ToArray();
-            mesh.normals = _normals.ToArray();
-            mesh.uv = _uvs.ToArray();
+            List<Vector3> vertices = new();
+            List<Vector3> normals = new();
+            List<Vector2> uvs = new();
+            List<int> triangles = new();
+            foreach (var segment in _segmentInfos)
+            {
+                vertices.AddRange(segment.vertices);
+                normals.AddRange(segment.normals);
+                uvs.AddRange(segment.uvs);
+                triangles.AddRange(segment.triangles);
+            }
+            mesh.vertices = vertices.ToArray();
+            mesh.triangles = triangles.ToArray();
+            mesh.normals = normals.ToArray();
+            mesh.uv = uvs.ToArray();
             mesh.RecalculateBounds();
+            Config.ClearDirtyFlags();
         }
 
         public void GetMeshData(out List<SegmentInfo> segmentInfos, out List<Vector3> vertices, out List<Vector3> normals, out List<Vector2> uvs, out List<int> triangles)
         {
             segmentInfos = _segmentInfos;
-            vertices = _vertices;
-            normals = _normals;
-            uvs = _uvs;
-            triangles = _triangles;
+            vertices = new();
+            normals = new();
+            uvs = new();
+            triangles = new();
+            foreach (var segment in _segmentInfos)
+            {
+                vertices.AddRange(segment.vertices);
+                normals.AddRange(segment.normals);
+                uvs.AddRange(segment.uvs);
+                triangles.AddRange(segment.triangles);
+            }
         }
 
         #endregion
