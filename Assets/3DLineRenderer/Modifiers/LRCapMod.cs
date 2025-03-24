@@ -16,7 +16,7 @@ namespace LineRenderer3D.Mods
     /// </summary>
     class LRCap : MonoBehaviour, ILRModBase
     {
-        List<int> ringEdgeIndexes;
+        List<Vector3> ringEdgeVertexes;
         LRData data;
 
         [SerializeField]
@@ -33,7 +33,9 @@ namespace LineRenderer3D.Mods
         public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos,
             ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            if (segmentInfos.Count < 1) return;
+            if (segmentInfos.Count < 1) 
+                return;
+
             RoundCap(data, ref segmentInfos, ref vertices, ref triangles, ref uvs, ref normals);
             
         }
@@ -51,7 +53,7 @@ namespace LineRenderer3D.Mods
         {
             if(isStart || begginingCap != endCap)
             {
-                ringEdgeIndexes = new();
+                ringEdgeVertexes = new();
                 this.data = data;
             }
             int numberOfFaces = data.Config.NumberOfFaces;
@@ -97,12 +99,12 @@ namespace LineRenderer3D.Mods
                     // second half of vertices
                     if (ring != 0 && ring != _rings && s == _segments)
                     {
-                        ringEdgeIndexes.Add(vertices.Count - 1);
+                        ringEdgeVertexes.Add(vertex);
                     }
                     // first half of vertices
                     if (s == 0)
                     {
-                        ringEdgeIndexes.Add(vertices.Count - 1);
+                        ringEdgeVertexes.Add(vertex);
                     }
                 }
             }
@@ -130,9 +132,9 @@ namespace LineRenderer3D.Mods
         {
             if (data == null || !enabled || !showGizmos)
                 return;
-            for (int i = 0; i < ringEdgeIndexes.Count; i++)
+            for (int i = 0; i < ringEdgeVertexes.Count; i++)
             {
-                Vector3 item = data.GetVertex(ringEdgeIndexes[i]);
+                Vector3 item = ringEdgeVertexes[i];
                 item = data.LrTransform.TransformPoint(item);
                 Gizmos.color = Color.black;
 #if UNITY_EDITOR

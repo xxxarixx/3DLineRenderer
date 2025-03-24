@@ -61,14 +61,26 @@ namespace LineRenderer3D
 #if UNITY_EDITOR
             UpdateMods();
 #endif
-            /*foreach (var mod in _mods)
-                if (mod.IsEnabled)
-                {
-                    Data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
-                    mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
-                }*/
+            if (_mods.Count > 0)
+            {
+                List<Vector3> vertices = new();
+                List<Vector3> normals = new();
+                List<Vector2> uvs = new();
+                List<int> triangles = new();
 
-            Data.ApplayDataToMesh(ref _mesh);
+                foreach (var mod in _mods)
+                    if (mod.IsEnabled)
+                    {
+                        Debug.Log($"Mod activated: {mod.Name}");
+                        Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
+                        mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
+                    }
+                Data.ApplayDataToMesh(ref _mesh, vertices, normals, uvs, triangles);
+            }
+            else
+            {
+                Data.ApplayDataToMesh(ref _mesh);
+            }
             _meshFilter.sharedMesh = _mesh;
         }
 
@@ -150,12 +162,26 @@ namespace LineRenderer3D
             }
 
             // Applay mods to LR
-            /*foreach (var mod in GetComponents<ILRModBase>())
-                if (mod.IsEnabled)
-                {
-                    Data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
-                    mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
-                }*/
+            if (_mods.Count > 0)
+            {
+                List<Vector3> vertices = new();
+                List<Vector3> normals = new();
+                List<Vector2> uvs = new();
+                List<int> triangles = new();
+
+                foreach (var mod in _mods)
+                    if (mod.IsEnabled)
+                    {
+                        Debug.Log($"Mod activated: {mod.Name}");
+                        Data.GetMeshData(out var segmentInfos, out vertices, out normals, out uvs, out triangles);
+                        mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
+                    }
+                Data.ApplayDataToMesh(ref _mesh, vertices, normals, uvs, triangles);
+            }
+            else
+            {
+                Data.ApplayDataToMesh(ref _mesh);
+            }
 
             Data.ApplayDataToMesh(ref _mesh);
             _meshFilter.sharedMesh = _mesh;

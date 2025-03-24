@@ -76,8 +76,6 @@ namespace LineRenderer3D.Datas
         {
             foreach ((int index, LRConfig.DirtyFlag dirtyFlag) in Config.DirtyPoints)
             {
-                Debug.Log($"dirty point ({index}), flag:{dirtyFlag}");
-
                 Vector3 start;
                 Vector3 end;
                 switch (dirtyFlag)
@@ -90,7 +88,6 @@ namespace LineRenderer3D.Datas
                         UpdateSegment(index);
                         break;
                     case LRConfig.DirtyFlag.Removed:
-                        Debug.Log($"Removed at {index}");
                         _segmentInfos.RemoveAt(index);
                         UpdateNextSegmentsTriangles(index);
                         break;
@@ -332,7 +329,17 @@ namespace LineRenderer3D.Datas
             end = LrTransform.InverseTransformPoint(Config.GetPoint(cylinderIndex + 1));
         }
 
-       // public Vector3 GetVertex(int index) => _vertices[index];
+        public Vector3 GetSegmentVertex(int index) 
+        {
+            // TODO Check if that working
+            int numberOfFaces = Config.NumberOfFaces;
+            Debug.Log($"vertex index to get: {index} numberOfFaces: {numberOfFaces}");
+            int segmentIndex = Mathf.FloorToInt(index / (numberOfFaces * 2));
+            Debug.Log($"segment index: {segmentIndex}");
+            int segmentVertexIndex = index - segmentIndex * (numberOfFaces * 2);
+            Debug.Log($"segment vertex index: {segmentVertexIndex}");
+            return _segmentInfos[segmentIndex].vertices[segmentVertexIndex]; 
+        }
 
         /// <summary>
         /// Applies the mesh data to the given mesh.
@@ -351,6 +358,17 @@ namespace LineRenderer3D.Datas
                 uvs.AddRange(segment.uvs);
                 triangles.AddRange(segment.triangles);
             }
+            mesh.vertices = vertices.ToArray();
+            mesh.triangles = triangles.ToArray();
+            mesh.normals = normals.ToArray();
+            mesh.uv = uvs.ToArray();
+            mesh.RecalculateBounds();
+            Config.ClearDirtyFlags();
+        }
+
+        public void ApplayDataToMesh(ref Mesh mesh, List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles)
+        {
+            mesh.Clear();
             mesh.vertices = vertices.ToArray();
             mesh.triangles = triangles.ToArray();
             mesh.normals = normals.ToArray();
