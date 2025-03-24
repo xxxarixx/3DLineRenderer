@@ -86,7 +86,7 @@ namespace LineRenderer3D.Mods
         /// <param name="segmentIndex">The index of the current segment.</param>
         void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
         {
-            if(segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.Points.Count)
+            if(segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.PointsCount)
                 return;
 
             SegmentInfo currentSegment = segmentInfos[segmentIndex];
@@ -100,11 +100,11 @@ namespace LineRenderer3D.Mods
             Vector3 B = Vector3.zero;
             Vector3 C = Vector3.zero;
 
-            if (data.Config.Points.Count > segmentInfos.Count)
+            if (data.Config.PointsCount > segmentInfos.Count)
             {
-                A = data.Config.Points[segmentIndex - 1];
-                B = data.Config.Points[segmentIndex];
-                C = data.Config.Points[segmentIndex + 1];
+                A = data.Config.GetPoint(segmentIndex - 1);
+                B = data.Config.GetPoint(segmentIndex);
+                C = data.Config.GetPoint(segmentIndex + 1);
             }
             else
             {

@@ -1,8 +1,8 @@
 using UnityEngine;
 using LineRenderer3D.Datas;
 using LineRenderer3D.Mods;
-using System.IO;
 using System.Collections.Generic;
+using LinerRenderer3D.Datas;
 
 namespace LineRenderer3D
 {
@@ -32,15 +32,46 @@ namespace LineRenderer3D
         [SerializeField]
         string savePath;
 
+        List<ILRModBase> _mods = new();
+
         void Awake()
         {
+            UpdateMods();
             GenerateMesh();
         }
 
         void Update()
         {
-            GenerateMesh();
+            if (Data.Config == null || Data.Config.DirtyPoints == null || Data.Config.DirtyPoints.Count > 0)
+            {
+                if(Data.Config.DirtyPoints.Count == Data.Config.PointsCount)
+                    GenerateMesh();
+                else
+                    PartialMeshUpdate();
+                Data.Config.ClearDirtyFlags();
+            }
         }
+
+        void PartialMeshUpdate()
+        {
+            Debug.Log("Partial mesh update");
+            CheckMeshAssigment();
+            Data.UpdateDirtyPoints();
+#if UNITY_EDITOR
+            UpdateMods();
+#endif
+            /*foreach (var mod in _mods)
+                if (mod.IsEnabled)
+                {
+                    Data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
+                    mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
+                }*/
+
+            Data.ApplayDataToMesh(ref _mesh);
+            _meshFilter.sharedMesh = _mesh;
+        }
+
+        void UpdateMods() => _mods = new List<ILRModBase>(GetComponents<ILRModBase>());
 
         /// <summary>
         /// Checks and assigns the mesh and mesh filter components.
@@ -57,17 +88,20 @@ namespace LineRenderer3D
                 _meshFilter.sharedMesh = _mesh;
         }
 
+        [ContextMenu(nameof(GenerateMesh))]
         /// <summary>
         /// Generates the mesh based on the current data and settings.
         /// </summary>
         void GenerateMesh()
         {
+            Debug.Log("full mesh update");
             Data ??= new();
             if (Data.Config == null)
             {
                 Debug.LogError($"There is no config, please set configuration files!");
                 return;
             }
+            LRConfig config = Data.Config;
             CheckMeshAssigment();
 
             if (_regenerateBasedOnCurrentValues)
@@ -78,33 +112,32 @@ namespace LineRenderer3D
 
             if (_stopRegeneration)
                 return;
-
-            if (Data.Config.Points.Count < 2)
+            if (config.PointsCount < 2)
             {
                 _mesh.Clear();
                 return;
             }
 
+            Debug.Log(config.PointsCount);
             Data.Setup(lrTransform: transform);
-
             // Setup segments info
-            for (int s = 0; s < Data.Config.Points.Count - 1; s++)
+            for (int s = 0; s < config.PointsCount - 1; s++)
             {
-                var segment = Data.GenerateSegmentInfo(start: transform.InverseTransformPoint(Data.Config.Points[s]),
-                                                       end: transform.InverseTransformPoint(Data.Config.Points[s + 1]),
+                Data.GetStartEndCylinder(s, out Vector3 start, out Vector3 end);
+                var segment = Data.GenerateSegmentInfo(start: start,
+                                                       end: end,
                                                        cylinderIndex: s);
-                if (segment == null)
-                    continue;
+
                 Data.AddSegmentInfo(segment);
+                Debug.Log("Added segment");
             }
 
             // Generate cylinders
-            for (int s = 0; s < Data.Config.Points.Count - 1; s++)
+            for (int s = 0; s < config.PointsCount - 1; s++)
             {
-                /*if (s > 0 && Vector3.Distance(_data.Points[s - 1], _data.Points[s]) < 0.0001f)
-                    continue;*/
-                Data.GenerateCylinder(start: transform.InverseTransformPoint(Data.Config.Points[s]),
-                                      end: transform.InverseTransformPoint(Data.Config.Points[s + 1]),
+                Data.GetStartEndCylinder(s, out Vector3 start, out Vector3 end);
+                Data.GenerateCylinder(start: start,
+                                      end: end,
                                       cylinderIndex: s,
                                       flipUV: false);
             }

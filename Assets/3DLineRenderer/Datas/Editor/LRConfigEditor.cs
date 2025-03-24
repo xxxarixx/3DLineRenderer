@@ -4,8 +4,6 @@ using UnityEngine;
 using LineRenderer3D;
 using LineRenderer3D.Datas;
 using UnityEditor.ShortcutManagement;
-using System;
-using UnityEditor.Experimental.GraphView;
 
 namespace LinerRenderer3D.Datas.Editor
 {
@@ -38,9 +36,9 @@ namespace LinerRenderer3D.Datas.Editor
                     continue;
 
                 var config = exe.Data.Config;
-                for (int i = 0; i < config.Points.Count; i++)
+                for (int i = 0; i < config.PointsCount; i++)
                 {
-                    Vector3 point = config.Points[i];
+                    Vector3 point = config.GetPoint(i);
                     // Calculate the distance between the camera and the point
                     float distanceToCamera = Vector3.Distance(cameraPosition, point);
 
@@ -58,10 +56,10 @@ namespace LinerRenderer3D.Datas.Editor
 
                         // Draw the position handle for the point
                         Quaternion rotation = Quaternion.identity;
-                        if (i == config.Points.Count - 1)
-                            rotation = Quaternion.LookRotation((point - config.Points[i - 1]).normalized);
+                        if (i == config.PointsCount - 1)
+                            rotation = Quaternion.LookRotation((point - config.GetPoint(i - 1)).normalized);
                         else if (i > 0)
-                            rotation = Quaternion.LookRotation(-(point - config.Points[i - 1]).normalized);
+                            rotation = Quaternion.LookRotation(-(point - config.GetPoint(i - 1)).normalized);
                         else
                         {
                             LRData.SegmentInfo segmentInfo = exe.Data.GetSegmentInfo(i);
@@ -73,7 +71,7 @@ namespace LinerRenderer3D.Datas.Editor
                         if (EditorGUI.EndChangeCheck())
                         {
                             Undo.RecordObject(config, "3DLR Change point position");
-                            config.Points[i] = point;
+                            config.UpdatePointPosition(i, point);
                             EditorUtility.SetDirty(config);
                         }
 
@@ -84,7 +82,7 @@ namespace LinerRenderer3D.Datas.Editor
                         // Button for creating a new offset line
                         if (GUI.Button(new Rect(guiPoint.x + 30, guiPoint.y + 50, 50, 30), "+"))
                         {
-                            CreateOffsetLine(exe.Data, i);
+                            AddPoint(exe.Data, i);
                         }
 
                         // Button for removing the point
@@ -114,10 +112,10 @@ namespace LinerRenderer3D.Datas.Editor
             return false;
         }
 
-        void CreateOffsetLine(LRData data, int index)
+        void AddPoint(LRData data, int index)
         {
             LRConfig config = data.Config;
-            if (index < 0 || index >= config.Points.Count)
+            if (index < 0 || index >= config.PointsCount)
                 return;
 
             float offsetAmount = data.Config.Radius * 3f;
@@ -125,25 +123,25 @@ namespace LinerRenderer3D.Datas.Editor
             if(index == 0)
             {
                 LRData.SegmentInfo segmentInfo = data.GetSegmentInfo(index);
-                newPoint = config.Points[index] + (segmentInfo.startSegmentCenter - segmentInfo.endSegmentCenter).normalized * offsetAmount;
+                newPoint = config.GetPoint(index) + (segmentInfo.startSegmentCenter - segmentInfo.endSegmentCenter).normalized * offsetAmount;
             }
             else
             {
-                newPoint = config.Points[index] + (config.Points[index] - config.Points[index - 1]).normalized * offsetAmount;
+                newPoint = config.GetPoint(index) + (config.GetPoint(index) - config.GetPoint(index - 1)).normalized * offsetAmount;
             }
 
             Undo.RecordObject(config, "3DLR Created new point");
-            config.Points.Insert(index == 0? index : index + 1, newPoint);
+            config.InsertPoint(index == 0? index : index + 1, newPoint);
             EditorUtility.SetDirty(config);
         }
 
         void RemovePoint(LRConfig config, int index)
         {
-            if (index < 0 || index >= config.Points.Count)
+            if (index < 0 || index >= config.PointsCount)
                 return;
 
             Undo.RecordObject(config, "3DLR Remove Point");
-            config.Points.RemoveAt(index);
+            config.RemovePoint(index);
             EditorUtility.SetDirty(config);
         }
     }
