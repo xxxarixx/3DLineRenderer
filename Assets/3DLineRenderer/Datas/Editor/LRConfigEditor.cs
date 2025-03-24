@@ -115,9 +115,6 @@ namespace LinerRenderer3D.Datas.Editor
         void AddPoint(LRData data, int index)
         {
             LRConfig config = data.Config;
-            if (index < 0 || index >= config.PointsCount)
-                return;
-
             float offsetAmount = data.Config.Radius * 3f;
             Vector3 newPoint = Vector3.zero;
             if(index == 0)
@@ -129,7 +126,7 @@ namespace LinerRenderer3D.Datas.Editor
             {
                 newPoint = config.GetPoint(index) + (config.GetPoint(index) - config.GetPoint(index - 1)).normalized * offsetAmount;
             }
-
+            Debug.Log($"Added point index: {index}");
             Undo.RecordObject(config, "3DLR Created new point");
             config.InsertPoint(index == 0? index : index + 1, newPoint);
             EditorUtility.SetDirty(config);
@@ -137,9 +134,6 @@ namespace LinerRenderer3D.Datas.Editor
 
         void RemovePoint(LRConfig config, int index)
         {
-            if (index < 0 || index >= config.PointsCount)
-                return;
-
             Undo.RecordObject(config, "3DLR Remove Point");
             config.RemovePoint(index);
             EditorUtility.SetDirty(config);

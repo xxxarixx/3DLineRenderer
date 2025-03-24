@@ -52,6 +52,8 @@ namespace LinerRenderer3D.Datas
         [System.NonSerialized]
         public HashSet<(int, DirtyFlag)> DirtyPoints = new();
 
+        public int PointsCount => _points.Count;
+
         [Header("Editor")]
         /// <summary>
         /// Threshold for displaying the buttons and move pivolts near the points
@@ -94,30 +96,39 @@ namespace LinerRenderer3D.Datas
             MarkPointDirty(index, DirtyFlag.Removed);
         }
 
+        public void ClearPoints()
+        {
+            _points.Clear();
+            _points.Add(Vector3.zero);
+            _points.Add(Vector3.one);
+        }
+
         public void UpdatePointPosition(int pointIndex, Vector3 newLocation)
         {
             _points[pointIndex] = newLocation;
             MarkPointDirty(pointIndex, DirtyFlag.ChangedPosition);
         }
 
-        public int PointsCount => _points.Count;
-
         public Vector3 GetPoint(int index) => _points[index];
 
         void MarkPointDirty(int index, DirtyFlag dirtyFlag)
         {
-            
-
             if(dirtyFlag == DirtyFlag.ChangedPosition)
                 DirtyPoints.Add((index, dirtyFlag));
 
-            if (index > 0)
-            {
-                DirtyPoints.Add((index - 1, dirtyFlag));
+            index = Mathf.Clamp(index, 0, PointsCount - 1);
+            var prevIndex = Mathf.Clamp(index - 1, 0, PointsCount - 1);
 
-                if(dirtyFlag == DirtyFlag.Added || dirtyFlag == DirtyFlag.Removed)
-                    DirtyPoints.Add((index - 1, DirtyFlag.ChangedPosition));
+            DirtyPoints.Add((prevIndex, dirtyFlag));
+
+            if(index > 0)
+            {
+                if(dirtyFlag == DirtyFlag.Removed)
+                    DirtyPoints.Add((prevIndex, DirtyFlag.ChangedPosition));
+                if(dirtyFlag == DirtyFlag.Added)
+                    DirtyPoints.Add((index, DirtyFlag.ChangedPosition));
             }
+            
 
         }
 

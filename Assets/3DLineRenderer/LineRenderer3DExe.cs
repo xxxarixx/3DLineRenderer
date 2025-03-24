@@ -42,7 +42,7 @@ namespace LineRenderer3D
 
         void Update()
         {
-            if (Data.Config == null || Data.Config.DirtyPoints == null || Data.Config.DirtyPoints.Count > 0)
+            if (Data.Config != null && Data.Config.DirtyPoints != null && Data.Config.DirtyPoints.Count > 0)
             {
                 if(Data.Config.DirtyPoints.Count == Data.Config.PointsCount)
                     GenerateMesh();
@@ -50,6 +50,7 @@ namespace LineRenderer3D
                     PartialMeshUpdate();
                 Data.Config.ClearDirtyFlags();
             }
+            Debug.Log($"Dirty count {Data.Config.DirtyPoints.Count}");
         }
 
         void PartialMeshUpdate()
@@ -86,6 +87,13 @@ namespace LineRenderer3D
 
             if (_meshFilter.sharedMesh == null)
                 _meshFilter.sharedMesh = _mesh;
+        }
+
+        [ContextMenu(nameof(ClearPoints))]
+        void ClearPoints()
+        {
+            Data.Config.ClearPoints();
+            GenerateMesh();
         }
 
         [ContextMenu(nameof(GenerateMesh))]
@@ -129,7 +137,6 @@ namespace LineRenderer3D
                                                        cylinderIndex: s);
 
                 Data.AddSegmentInfo(segment);
-                Debug.Log("Added segment");
             }
 
             // Generate cylinders
@@ -143,12 +150,12 @@ namespace LineRenderer3D
             }
 
             // Applay mods to LR
-            foreach (var mod in GetComponents<ILRModBase>())
+            /*foreach (var mod in GetComponents<ILRModBase>())
                 if (mod.IsEnabled)
                 {
                     Data.GetMeshData(out var segmentInfos, out var vertices, out var normals, out var uv, out var triangles);
                     mod.ManipulateMesh(Data, ref segmentInfos, ref vertices, ref normals, ref uv, ref triangles);
-                }
+                }*/
 
             Data.ApplayDataToMesh(ref _mesh);
             _meshFilter.sharedMesh = _mesh;
