@@ -1,6 +1,6 @@
-using LinerRenderer3D.Datas;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace LineRenderer3D.Datas
@@ -17,6 +17,10 @@ namespace LineRenderer3D.Datas
         public LRConfig Config;
 
         public List<SegmentInfo> SegmentInfos;
+
+        public List<ModInfo> ModsInfos = new();
+
+
 
         /// <summary>
         /// Contains valuable information about cylinder segment, like start and end center, and vertices index of start or end.
@@ -72,6 +76,60 @@ namespace LineRenderer3D.Datas
             }
         }
 
+        [Serializable]
+        public class ModInfo
+        {
+            // TODO: Differenciate when add mod info and when remove
+            // TODO: Have possibility to update other segment (required for LRCap)
+            // TODO: Have possibility to update all segments (required for LRConnection)
+            public string Name;
+
+            public List<Vector3> Vertices;
+
+            public List<Vector3> Normals;
+
+            public List<Vector2> Uvs;
+
+            public List<int> Triangles;
+
+            public string ModsAdditionalDataJson;
+
+            public bool DirtyJustTriangles;
+
+            public ModInfo()
+            {
+                Vertices = new();
+                Normals = new();
+                Uvs = new();
+                Triangles = new List<int>();
+            }
+
+            public static ModInfo operator +(ModInfo mod1, ModInfo mod2)
+            {
+                mod1.Vertices.AddRange(mod2.Vertices);
+                mod1.Normals.AddRange(mod2.Normals);
+                mod1.Uvs.AddRange(mod2.Uvs);
+                mod1.Triangles.AddRange(mod2.Triangles);
+                return mod1;
+            }
+
+            public void ClearLists()
+            {
+                Vertices.Clear();
+                Triangles.Clear();
+                Normals.Clear();
+                Uvs.Clear();
+            }
+        }
+
+        public void DebugMods()
+        {
+            foreach (var modkeyValue in ModsInfos)
+            {
+                Debug.Log($"mod applied Key: {modkeyValue} Value: {modkeyValue.Vertices}");
+            }
+        }
+
         public void UpdateDirtyPoints()
         {
             foreach ((int index, LRConfig.DirtyFlag dirtyFlag) in Config.DirtyPoints)
@@ -111,6 +169,16 @@ namespace LineRenderer3D.Datas
         #region Data Manipulation
 
         public SegmentInfo GetSegmentInfo(int index) => SegmentInfos[index];
+
+        /// <summary>
+        /// I have concernes about it. Whenever f.ex connection mod will add vertices then this wont be proper vertex count.
+        /// </summary>
+        public int GetSegmentVerticesCount() => SegmentInfos.Sum(x => x.vertices.Count);
+
+        /// <summary>
+        /// I have concernes about it. Whenever f.ex connection mod will add vertices then this wont be proper vertex count.
+        /// </summary>
+        public int GetSegmentTrianglesCount() => SegmentInfos.Sum(x => x.triangles.Count);
 
         public void UpdateNextSegmentsTriangles(int index) 
         {
@@ -340,16 +408,24 @@ namespace LineRenderer3D.Datas
             return SegmentInfos[segmentIndex].vertices[segmentVertexIndex]; 
         }
 
+        List<Vector3> vertices = new();
+        List<Vector3> normals = new();
+        List<Vector2> uvs = new();
+        List<int> triangles = new();
+
         /// <summary>
         /// Applies the mesh data to the given mesh.
         /// </summary>
         public void ApplayDataToMesh(ref Mesh mesh)
         {
             mesh.Clear();
-            List<Vector3> vertices = new();
-            List<Vector3> normals = new();
-            List<Vector2> uvs = new();
-            List<int> triangles = new();
+            vertices.Clear();
+            normals.Clear();
+            uvs.Clear();
+            triangles.Clear();
+            Config.DirtyPoints.Clear();
+
+
             foreach (var segment in SegmentInfos)
             {
                 vertices.AddRange(segment.vertices);
@@ -357,13 +433,25 @@ namespace LineRenderer3D.Datas
                 uvs.AddRange(segment.uvs);
                 triangles.AddRange(segment.triangles);
             }
+
+            // Add mods
+            foreach (var mod in ModsInfos)
+            {
+                vertices.AddRange(mod.Vertices);
+                normals.AddRange(mod.Normals);
+                uvs.AddRange(mod.Uvs);
+                triangles.AddRange(mod.Triangles);
+            }
             mesh.vertices = vertices.ToArray();
             mesh.triangles = triangles.ToArray();
             mesh.normals = normals.ToArray();
             mesh.uv = uvs.ToArray();
             mesh.RecalculateBounds();
             Config.ClearDirtyFlags();
+
         }
+
+        public List<Vector3> GetLastVerticeList() => vertices;
 
         public void ApplayDataToMesh(ref Mesh mesh, List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles)
         {

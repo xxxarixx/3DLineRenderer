@@ -3,6 +3,8 @@ using LineRenderer3D.Mods;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using LinerRenderer3D.Datas;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -13,7 +15,7 @@ using UnityEditor;
 /// </summary>
 public class LRDebugMod : MonoBehaviour, ILRModBase
 {
-    public string Name => name;
+    public string KeyName => nameof(LRDebugMod);
 
     public bool IsEnabled => enabled;
 
@@ -40,7 +42,7 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
         Directions = 0b10000
     }
 
-    public void ManipulateMesh(LRData data, int segmentIndex, ref List<LRData.SegmentInfo> segmentInfos)
+    public LRData.ModInfo ManipulateMesh(LRData data, int startVerticeIndex, int startTriangleIndex, int segmentIndex, ref List<LRData.SegmentInfo> segmentInfos)
     {
         _data = data;
         _segmentInfos = segmentInfos;
@@ -55,6 +57,12 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
             _uvs.AddRange(segment.uvs);
             _triangles.AddRange(segment.triangles);
         }
+        return new();
+    }
+
+    public List<int> RecalculateTriangles(LRData data, LRData.ModInfo currentMod, int startVerticeIndex, int startTriangleIndex, int segmentIndex, List<LRData.SegmentInfo> segmentInfos)
+    {
+        return default;
     }
 
     // Copied veriables from modifier to visualize them in gizmos.
@@ -73,6 +81,24 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
     [SerializeField]
     List<int> _triangles;
     LRData _data;
+
+    LRBoot _boot;
+    void Start()
+    {
+        if (_boot == null)
+            _boot = GetComponent<LRBoot>();
+    }
+
+    void OnEnable()
+    {
+        _boot.AddModWithoutDirty(KeyName);
+    }
+
+    void OnDisable()
+    {
+        _boot.RemoveModWithoutDirty(KeyName);
+    }
+
 
     void OnDrawGizmos()
     {
@@ -130,6 +156,7 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
             if (visualizeVertices)
             {
                 Gizmos.color = Color.red;
+
                 for (int i = 0; i < segmentInfo.startSegmentVericesIndex.Count; i++)
                 {
                     var index = segmentInfo.startSegmentVericesIndex[i];
@@ -141,6 +168,14 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
                     var index = segmentInfo.endSegmentVericesIndex[i];
                     Vector3 pos = transform.TransformPoint(_vertices[index]);
                     Gizmos.DrawSphere(pos, _vertexGizmosSize);
+                }
+                foreach (var modInfo in _data.ModsInfos)
+                {
+                    for (int i = 0; i < modInfo.Vertices.Count; i++)
+                    {
+                        Vector3 pos = transform.TransformPoint(modInfo.Vertices[i]);
+                        Gizmos.DrawSphere(pos, _vertexGizmosSize);
+                    }
                 }
             }
 
@@ -211,9 +246,8 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
                     }
                 }
 #endif
-
-
         }
 
     }
+
 }

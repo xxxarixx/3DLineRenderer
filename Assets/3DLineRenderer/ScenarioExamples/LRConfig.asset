@@ -14,4 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _numberOfFaces: 18
   _radius: 0.1
-  DisplayThreshold: 10
+  _points:
+  - {x: 0.10305265, y: 0.9379748, z: 0.87945646}
+  - {x: -0.42460763, y: 0.47548723, z: -0.4246077}
+  - {x: 0, y: 0, z: 0}
+  - {x: 0.7321601, y: 0.53221536, z: 0.7321598}
+  DisplayThreshold: 9.79

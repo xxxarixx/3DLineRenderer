@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LinerRenderer3D.Datas
+namespace LineRenderer3D.Datas
 {
     [CreateAssetMenu(menuName = nameof(LRConfig), fileName = nameof(LRConfig))]
     public class LRConfig : ScriptableObject
@@ -47,6 +47,8 @@ namespace LinerRenderer3D.Datas
         }
         public float SegmentMinLength => 2 * Radius;
 
+        [SerializeField]
+        [HideInInspector]
         List<Vector3> _points = new();
 
         [System.NonSerialized]
@@ -99,6 +101,7 @@ namespace LinerRenderer3D.Datas
         public void ClearPoints()
         {
             _points.Clear();
+            DirtyPoints.Clear();
             _points.Add(Vector3.zero);
             _points.Add(Vector3.one);
         }
@@ -111,7 +114,7 @@ namespace LinerRenderer3D.Datas
 
         public Vector3 GetPoint(int index) => _points[index];
 
-        void MarkPointDirty(int index, DirtyFlag dirtyFlag)
+        public void MarkPointDirty(int index, DirtyFlag dirtyFlag)
         {
             
 

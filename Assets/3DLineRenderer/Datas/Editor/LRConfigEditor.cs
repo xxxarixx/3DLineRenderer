@@ -7,13 +7,13 @@ using UnityEditor.ShortcutManagement;
 
 namespace LinerRenderer3D.Datas.Editor
 {
-    [EditorTool("Path manipulator", typeof(LineRenderer3DExe))]
+    [EditorTool("Path manipulator", typeof(LRBoot))]
     public class LRConfigEditor : EditorTool
     {
         [Shortcut("Active LR3D Path Manipulator", KeyCode.D)]
         static void Active3DLRPath()
         {
-            if (Selection.GetFiltered<LineRenderer3DExe>(SelectionMode.TopLevel).Length > 0)
+            if (Selection.GetFiltered<LRBoot>(SelectionMode.TopLevel).Length > 0)
                 ToolManager.SetActiveTool<LRConfigEditor>();
         }
 
@@ -29,13 +29,13 @@ namespace LinerRenderer3D.Datas.Editor
 
             foreach (var item in targets)
             {
-                if (item is not LineRenderer3DExe exe)
+                if (item is not LRBoot boot)
                     continue;
 
-                if (exe.Data.Config == null)
+                if (boot.Data.Config == null)
                     continue;
 
-                var config = exe.Data.Config;
+                var config = boot.Data.Config;
                 for (int i = 0; i < config.PointsCount; i++)
                 {
                     Vector3 point = config.GetPoint(i);
@@ -62,7 +62,7 @@ namespace LinerRenderer3D.Datas.Editor
                             rotation = Quaternion.LookRotation(-(point - config.GetPoint(i - 1)).normalized);
                         else
                         {
-                            LRData.SegmentInfo segmentInfo = exe.Data.GetSegmentInfo(i);
+                            LRData.SegmentInfo segmentInfo = boot.Data.GetSegmentInfo(i);
                             var dir = (segmentInfo.startSegmentCenter - segmentInfo.endSegmentCenter).normalized;
                             rotation = Quaternion.LookRotation(dir);
                         }
@@ -82,7 +82,7 @@ namespace LinerRenderer3D.Datas.Editor
                         // Button for creating a new offset line
                         if (GUI.Button(new Rect(guiPoint.x + 30, guiPoint.y + 50, 50, 30), "+"))
                         {
-                            AddPoint(exe.Data, i);
+                            AddPoint(boot.Data, i);
                         }
 
                         // Button for removing the point

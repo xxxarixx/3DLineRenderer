@@ -1,8 +1,8 @@
 using UnityEngine;
 using LineRenderer3D.Datas;
 using LineRenderer3D.Mods;
-using System.Collections.Generic;
 using LinerRenderer3D.Datas;
+using System.Linq;
 
 namespace LineRenderer3D
 {
@@ -13,7 +13,8 @@ namespace LineRenderer3D
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class LineRenderer3DExe : MonoBehaviour
     {
-        public LRData Data;
+        public LRBoot boot;
+        LRData Data => boot.Data;
 
         [Header("Debug")]
         [SerializeField]
@@ -32,11 +33,9 @@ namespace LineRenderer3D
         [SerializeField]
         string savePath;
 
-        List<ILRModBase> _mods = new();
 
         void Awake()
         {
-            UpdateMods();
             GenerateMesh();
         }
 
@@ -54,31 +53,59 @@ namespace LineRenderer3D
 
         void PartialMeshUpdate()
         {
-            Debug.Log("Partial mesh update");
+            Debug.Log("====Partial mesh update====");
             CheckMeshAssigment();
             Data.UpdateDirtyPoints();
-#if UNITY_EDITOR
-            UpdateMods();
-#endif
             // Applay mods to LR
-            foreach (var dirtyPoints in Data.Config.DirtyPoints)
-            {
-                int index = dirtyPoints.Item1;
-
-                foreach (var mod in _mods)
-                    if (mod.IsEnabled)
-                    {
-                        Debug.Log($"Mod activated: {mod.Name}");
-                        mod.ManipulateMesh(Data, dirtyPoints.Item1, ref Data.SegmentInfos);
-                    }
-            }
+            int currentVertexCount = Data.GetSegmentVerticesCount();
+            int currentTriangleCount = Data.GetSegmentTrianglesCount();
+            foreach ((int, LRConfig.DirtyFlag) dirtyPoints in Data.Config.DirtyPoints)
+                IntegrateMods(dirtyPoints, currentVertexCount, currentTriangleCount);
 
 
             Data.ApplayDataToMesh(ref _mesh);
             _meshFilter.sharedMesh = _mesh;
         }
 
-        void UpdateMods() => _mods = new List<ILRModBase>(GetComponents<ILRModBase>());
+        void IntegrateMods((int, LRConfig.DirtyFlag) dirtyPoint, int currentVertexCount, int currentTriangleCount)
+        {
+            int pointIndex = dirtyPoint.Item1;
+            ILRModBase[] modsBase = GetComponents<ILRModBase>();
+            for (int m = 0; m < Data.ModsInfos.Count; m++)
+            {
+                ILRModBase modBase = modsBase.First(x => x.KeyName == Data.ModsInfos[m].Name);
+                string key = modBase.KeyName;
+                if (!Data.ModsInfos[m].DirtyJustTriangles)
+                {
+                    LRData.ModInfo modInfo = modBase.ManipulateMesh(Data, currentVertexCount, currentTriangleCount, pointIndex, ref Data.SegmentInfos);
+                    Debug.Log($"{key}, {pointIndex}, startVertices: {currentVertexCount}");
+
+                    if (modInfo == null)
+                    {
+                        currentVertexCount += Data.ModsInfos[m].Vertices.Count;
+                        continue;
+                    }
+
+                    currentVertexCount += modInfo.Vertices.Count;
+                    modInfo.Name = key;
+                    Data.ModsInfos[m] = modInfo;
+                }
+                else
+                {
+                    // Update triangles all above
+                    for (int i = m; i < Data.ModsInfos.Count; i++)
+                    {
+                        var modInfo = Data.ModsInfos[i];
+                        Data.ModsInfos[i].Triangles = modsBase.First(x => x.KeyName == modInfo.Name).RecalculateTriangles(Data, modInfo, currentVertexCount, currentTriangleCount, pointIndex, Data.SegmentInfos);
+                    }
+                    Data.ModsInfos[m].DirtyJustTriangles = false;
+                }
+            }
+        }
+
+        [ContextMenu(nameof(DebugMods))]
+        void DebugMods() => Data.DebugMods();
+
 
         /// <summary>
         /// Checks and assigns the mesh and mesh filter components.
@@ -86,7 +113,10 @@ namespace LineRenderer3D
         void CheckMeshAssigment()
         {
             if (_mesh == null)
-                _mesh = new();
+                _mesh = new()
+                {
+                    name = $"3DLineRenderer"
+                };
 
             if (_meshFilter == null)
                 _meshFilter = GetComponent<MeshFilter>();
@@ -109,7 +139,6 @@ namespace LineRenderer3D
         void GenerateMesh()
         {
             Debug.Log("full mesh update");
-            Data ??= new();
             if (Data.Config == null)
             {
                 Debug.LogError($"There is no config, please set configuration files!");
@@ -131,8 +160,6 @@ namespace LineRenderer3D
                 _mesh.Clear();
                 return;
             }
-
-            Debug.Log(config.PointsCount);
             Data.Setup(lrTransform: transform);
             // Setup segments info
             for (int s = 0; s < config.PointsCount - 1; s++)
@@ -155,21 +182,30 @@ namespace LineRenderer3D
                                       flipUV: false);
             }
 
+            int currentVertexCount = Data.GetSegmentVerticesCount();
+            int currentTriangleCount = Data.GetSegmentTrianglesCount();
+
             // Applay mods to LR
             foreach (var dirtyPoints in Data.Config.DirtyPoints)
-            {
-                int index = dirtyPoints.Item1;
-                foreach (var mod in _mods)
-                    if (mod.IsEnabled)
-                    {
-                        Debug.Log($"Mod activated: {mod.Name}");
-                        mod.ManipulateMesh(Data, dirtyPoints.Item1, ref Data.SegmentInfos);
-                    }
-            }
+                IntegrateMods(dirtyPoints, currentVertexCount, currentTriangleCount);
 
 
             Data.ApplayDataToMesh(ref _mesh);
             _meshFilter.sharedMesh = _mesh;
+        }
+        [SerializeField]
+        bool showVertices;
+        private void OnDrawGizmos()
+        {
+            if(showVertices)
+            {
+                Gizmos.color = Color.red;
+                foreach (var item in Data.GetLastVerticeList())
+                {
+                    Vector3 pos = transform.TransformPoint(item);
+                    Gizmos.DrawSphere(pos, 0.01f);
+                }
+            }
         }
     }
 }

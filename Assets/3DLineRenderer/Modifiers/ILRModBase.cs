@@ -8,10 +8,12 @@ namespace LineRenderer3D.Mods
     /// </summary>
     public interface ILRModBase
     {
-        string Name { get; }
+        string KeyName { get; }
 
         bool IsEnabled { get; }
 
-        void ManipulateMesh(LRData data, int segmentIndex, ref List<LRData.SegmentInfo> segmentInfos);
+        LRData.ModInfo ManipulateMesh(LRData data, int startVerticeIndex, int startTriangleIndex, int segmentIndex, ref List<LRData.SegmentInfo> segmentInfos);
+
+        List<int> RecalculateTriangles(LRData data, LRData.ModInfo currentMod, int startVerticeIndex, int startTriangleIndex, int segmentIndex, List<LRData.SegmentInfo> segmentInfos);
     }
 }
