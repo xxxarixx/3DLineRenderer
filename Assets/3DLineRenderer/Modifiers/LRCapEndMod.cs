@@ -50,21 +50,19 @@ namespace LineRenderer3D.Mods
         }
 
         LRBoot _boot;
-        void Start()
-        {
-            if(_boot == null)
-                _boot = GetComponent<LRBoot>();
-        }
 
         void OnEnable()
         {
-            Start();
-            _boot.AddMod(KeyName, Config.PointsCount - 1);
+            if (_boot == null)
+                _boot = GetComponent<LRBoot>();
+            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) == null)
+                _boot.AddMod(KeyName, Config.PointsCount - 1);
         }
 
         void OnDisable()
         {
-            _boot.RemoveMod(KeyName, Config.PointsCount - 1);
+            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) != null)
+                _boot.RemoveMod(KeyName, Config.PointsCount - 1);
         }
 
         void OnDrawGizmos()

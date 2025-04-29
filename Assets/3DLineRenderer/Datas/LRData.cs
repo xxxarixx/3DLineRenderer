@@ -20,8 +20,6 @@ namespace LineRenderer3D.Datas
 
         public List<ModInfo> ModsInfos = new();
 
-
-
         /// <summary>
         /// Contains valuable information about cylinder segment, like start and end center, and vertices index of start or end.
         /// </summary>
@@ -79,8 +77,6 @@ namespace LineRenderer3D.Datas
         [Serializable]
         public class ModInfo
         {
-            // TODO: Differenciate when add mod info and when remove
-            // TODO: Have possibility to update other segment (required for LRCap)
             // TODO: Have possibility to update all segments (required for LRConnection)
             public string Name;
 
@@ -92,7 +88,7 @@ namespace LineRenderer3D.Datas
 
             public List<int> Triangles;
 
-            public string ModsAdditionalDataJson;
+            public object ModsAdditionalData;
 
             public bool DirtyJustTriangles;
 
@@ -396,16 +392,28 @@ namespace LineRenderer3D.Datas
             end = LrTransform.InverseTransformPoint(Config.GetPoint(cylinderIndex + 1));
         }
 
-        public Vector3 GetSegmentVertex(int index) 
+        public Vector3 GetSegmentVertex(int index)
         {
-            // TODO Check if that working
             int numberOfFaces = Config.NumberOfFaces;
-            Debug.Log($"vertex index to get: {index} numberOfFaces: {numberOfFaces}");
             int segmentIndex = Mathf.FloorToInt(index / (numberOfFaces * 2));
-            Debug.Log($"segment index: {segmentIndex}");
             int segmentVertexIndex = index - segmentIndex * (numberOfFaces * 2);
-            Debug.Log($"segment vertex index: {segmentVertexIndex}");
-            return SegmentInfos[segmentIndex].vertices[segmentVertexIndex]; 
+            return SegmentInfos[segmentIndex].vertices[segmentVertexIndex];
+        }
+
+        public void SetSegmentVertex(int index, Vector3 newVector)
+        {
+            int numberOfFaces = Config.NumberOfFaces;
+            int segmentIndex = Mathf.FloorToInt(index / (numberOfFaces * 2));
+            int segmentVertexIndex = index - segmentIndex * (numberOfFaces * 2);
+            SegmentInfos[segmentIndex].vertices[segmentVertexIndex] = newVector;
+        }
+
+        public void TranslateVertex(int index, Vector3 translation)
+        {
+            int numberOfFaces = Config.NumberOfFaces;
+            int segmentIndex = Mathf.FloorToInt(index / (numberOfFaces * 2));
+            int segmentVertexIndex = index - segmentIndex * (numberOfFaces * 2);
+            SegmentInfos[segmentIndex].vertices[segmentVertexIndex] += translation;
         }
 
         List<Vector3> vertices = new();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -116,15 +117,9 @@ namespace LineRenderer3D.Datas
 
         public void MarkPointDirty(int index, DirtyFlag dirtyFlag)
         {
-            
-
             index = Mathf.Clamp(index, 0, PointsCount - 2);
             var prevIndex = Mathf.Clamp(index - 1, 0, PointsCount - 2);
 
-            if (dirtyFlag == DirtyFlag.ChangedPosition)
-                DirtyPoints.Add((index, dirtyFlag));
-
-            DirtyPoints.Add((prevIndex, dirtyFlag));
 
             if (index > 0)
             {
@@ -137,9 +132,19 @@ namespace LineRenderer3D.Datas
                 if(dirtyFlag == DirtyFlag.Removed)
                     DirtyPoints.Add((index, DirtyFlag.ChangedPosition));
 
+            DirtyPoints.Add((prevIndex, dirtyFlag));
+
+            if (dirtyFlag == DirtyFlag.ChangedPosition)
+            {
+                DirtyPoints.Add((index, dirtyFlag));
+                if(index < PointsCount - 2)
+                    DirtyPoints.Add((index + 1, dirtyFlag));
+            }
+
+
         }
 
-        void MarkAlPointsDirty()
+        public void MarkAlPointsDirty()
         {
             for (int i = 0; i < _points.Count; i++)
                 DirtyPoints.Add((i, DirtyFlag.ChangedPosition));

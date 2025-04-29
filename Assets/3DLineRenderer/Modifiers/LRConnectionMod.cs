@@ -1,5 +1,7 @@
-/*using LineRenderer3D.Datas;
+using LineRenderer3D.Datas;
+using LinerRenderer3D.Datas;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static LineRenderer3D.Datas.LRData;
 using static Unity.Mathematics.math;
@@ -9,6 +11,7 @@ namespace LineRenderer3D.Mods
     /// <summary>
     /// Modifies the connection between segments by adding a curve between them.<br/>
     /// </summary>
+    [ExecuteAlways]
     class LRConnectionModifier : MonoBehaviour, ILRModBase
     {
         int _pointsPerCurve;
@@ -38,9 +41,9 @@ namespace LineRenderer3D.Mods
 
         readonly List<Vector3> connectionPoints = new();
 
-        public string Name => ToString();
-
         public bool IsEnabled => enabled;
+
+        public string KeyName => nameof(LRConnectionModifier);
 
         void OnDrawGizmos()
         {
@@ -56,39 +59,117 @@ namespace LineRenderer3D.Mods
                 foreach (var point in connectionPoints)
                     Gizmos.DrawWireSphere(point, _vertexGizmosSize / 2);
         }
+
+        LRBoot _boot;
+
+        void OnEnable()
+        {
+            if (_boot == null)
+                _boot = GetComponent<LRBoot>();
+            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) == null)
+                _boot.AddModMarkAllPointsDirty(KeyName);
+        }
+
+        void OnDisable()
+        {
+            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) != null)
+            {
+                _boot.RemoveModMarkAllPointsDirty(KeyName);
+                lastAdditionalData = null;
+            }
+        }
+
+        public List<int> RecalculateTriangles(LRData data, ModInfo currentMod, int startVerticeIndex, int startTriangleIndex, int segmentIndex, List<SegmentInfo> segmentInfos)
+        {
+            /*var segment = segmentInfos[segmentIndex];
+            bool isFirstSegment = segmentIndex == 0;
+            bool hasCorner = false;
+            if (!isFirstSegment)
+            {
+                var prevSegment = segmentInfos[segmentIndex - 1];
+                hasCorner = ArePointsFormingCorner(
+                    prevSegment.endSegmentCenter,
+                    segment.startSegmentCenter,
+                    segment.endSegmentCenter
+                );
+            }
+
+            if (!hasCorner || segmentIndex == 0 || segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.PointsCount)
+                return new();
+
+            return GetConnectionTraingles(segmentIndex, startVerticeIndex, data, segmentInfos);*/
+            return currentMod.Triangles;
+        }
+
         
-        public void ManipulateMesh(LRData data, ref List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+        public AdditionalData lastAdditionalData;
+
+        public ModInfo ManipulateMesh(LRData data, int startVerticeIndex, int startTriangleIndex, int segmentIndex, ref List<SegmentInfo> segmentInfos)
         {
             // It's not possible to have angle with less than 2 segments
             if (segmentInfos.Count < 2)
-                return;
+                return default;
 
             // Prepare lists to new LR
             helpControlPoints.Clear();
             connectionPoints.Clear();
             _pointsPerCurve = Mathf.Clamp(data.Config.NumberOfFaces, 2, data.Config.NumberOfFaces);
 
-            for (int s = 0; s < segmentInfos.Count; s++)
+            ModInfo lrConnectionMod = data.ModsInfos.Find(x => x.Name == KeyName);
+            lrConnectionMod ??= new();
+            lrConnectionMod.ModsAdditionalData ??= new AdditionalData();
+            ConnectionData connectionData = new();
+            AdditionalData additionalData = (AdditionalData)lrConnectionMod.ModsAdditionalData;
+            Dictionary<int, ConnectionData> connectionDatas = additionalData.connectionDatas;
+
+            Debug.Log($"holding segmentID: {segmentIndex}");
+            // Change current segments to make distance for corner
+            MakeDistanceForCorner(segmentID: segmentIndex, data, ref segmentInfos, out bool hasCorner);
+
+            if (!hasCorner || segmentIndex == 0 || segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.PointsCount)
             {
-                // Change current segments to make distance for corner
-                MakeDistanceForCorner(segmentID: s, data, ref vertices, ref segmentInfos, out bool hasCorner);
-
-                if (!hasCorner || s == 0)
-                    continue;
-
-                CreateConnections(segmentIndex: s, data, segmentInfos, ref vertices, ref normals, ref uvs, ref triangles);
+                lastAdditionalData = additionalData;
+                return default;
             }
+            if (!connectionDatas.ContainsKey(segmentIndex))
+                connectionDatas.Add(segmentIndex, connectionData);
+            Debug.Log($"passed segmentID: {segmentIndex} connectionDataCount: {additionalData.connectionDatas.Count}");
+            
+            if (lrConnectionMod.ModsAdditionalData != null && segmentIndex > 1)
+            {
+                Debug.Log("replaced");  
+                startVerticeIndex = connectionDatas[segmentIndex - 1].Triangles[^3] + 1;
+            }
+            
+
+             CreateConnections(segmentIndex: segmentIndex, startVerticeIndex, ref connectionData, data, segmentInfos);
+
+
+            additionalData.connectionDatas[segmentIndex] = connectionData;
+            lastAdditionalData = additionalData;
+
+            lrConnectionMod.Vertices.Clear();
+            lrConnectionMod.Normals.Clear();
+            lrConnectionMod.Uvs.Clear();
+            lrConnectionMod.Triangles.Clear();
+            foreach (var item in connectionDatas)
+            {
+                var conData = item.Value;
+                lrConnectionMod.Vertices.AddRange(conData.Vertices);
+                lrConnectionMod.Normals.AddRange(conData.Normals);
+                lrConnectionMod.Uvs.AddRange(conData.Uvs);
+                lrConnectionMod.Triangles.AddRange(conData.Triangles);
+            }
+
+            return lrConnectionMod;
         }
 
         /// <summary>
         /// Creates connections between segments by generating vertices, normals, UVs, and triangles.
         /// </summary>
         /// <param name="segmentIndex">The index of the current segment.</param>
-        void CreateConnections(int segmentIndex, LRData data, List<SegmentInfo> segmentInfos, ref List<Vector3> vertices, ref List<Vector3> normals, ref List<Vector2> uvs, ref List<int> triangles)
+        void CreateConnections(int segmentIndex, int startVerticeIndex, ref ConnectionData connectionData, LRData data, List<SegmentInfo> segmentInfos)
         {
-            if(segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.PointsCount)
-                return;
-
             SegmentInfo currentSegment = segmentInfos[segmentIndex];
             SegmentInfo previousSegment = segmentInfos[segmentIndex - 1];
 
@@ -96,9 +177,7 @@ namespace LineRenderer3D.Mods
             float radius = data.Config.Radius;
 
             // A => Previous Point, B => Current Point, C => Next Point
-            Vector3 A = Vector3.zero;
-            Vector3 B = Vector3.zero;
-            Vector3 C = Vector3.zero;
+            Vector3 A, B, C;
 
             if (data.Config.PointsCount > segmentInfos.Count)
             {
@@ -125,8 +204,6 @@ namespace LineRenderer3D.Mods
 
             Vector3 helpControlPoint = Vector3.Lerp(prevEndCenter, currStartCenter, 0.5f) + inBetweenDir * (_distance * distanceControlPointMultiplayer);
             helpControlPoints.Add(helpControlPoint);
-
-            int initialVerticesCount = vertices.Count;
 
             // Generate vertices for the connection curve
             for (int p = 0; p < _pointsPerCurve; p++)
@@ -159,25 +236,54 @@ namespace LineRenderer3D.Mods
 
                     // Vertexes
                     Vector3 vertexPos = centralPoint + rotation * circleOffset;
-                    vertices.Add(transform.InverseTransformPoint(vertexPos));
+                    connectionData.Vertices.Add(transform.InverseTransformPoint(vertexPos));
                     connectionPoints.Add(vertexPos);
                     // Normals
-                    normals.Add((vertexPos - centralPoint).normalized);
+                    connectionData.Normals.Add((vertexPos - centralPoint).normalized);
 
                     // UV mapping
                     if (f > numberOfFaces / 2)
-                        uvs.Add(new Vector2(2f - ((float)f / numberOfFaces) * 2f, 1 - t));
+                        connectionData.Uvs.Add(new Vector2(2f - ((float)f / numberOfFaces) * 2f, 1 - t));
                     else
-                        uvs.Add(new Vector2(((float)f / numberOfFaces) * 2f, 1 - t));
+                        connectionData.Uvs.Add(new Vector2(((float)f / numberOfFaces) * 2f, 1 - t));
                 }
                 
             }
 
             // Generate triangles between segments
+            connectionData.Triangles.AddRange(GetConnectionTraingles(segmentIndex, startVerticeIndex, data, segmentInfos));
+        }
+
+        [System.Serializable]
+        internal class AdditionalData 
+        {
+            [SerializeField]
+            internal Dictionary<int, ConnectionData> connectionDatas = new();
+        }
+
+        [System.Serializable]
+        internal class ConnectionData
+        {
+            [SerializeField]
+            internal List<Vector3> Vertices = new();
+            [SerializeField]
+            internal List<Vector3> Normals = new();
+            [SerializeField]
+            internal List<Vector2> Uvs = new();
+            [SerializeField]
+            internal List<int> Triangles = new();
+        }
+
+
+        List<int> GetConnectionTraingles(int segmentIndex, int startVerticeIndex, LRData data, List<SegmentInfo> segmentInfos)
+        {
+            List<int> triangles = new();
+            int numberOfFaces = data.Config.NumberOfFaces;
+            // Generate triangles between segments
             for (int i = 0; i < numberOfFaces; i++)
             {
                 int nextI = (i + 1) % numberOfFaces;
-                
+
 
                 for (int p = 0; p < _pointsPerCurve; p++)
                 {
@@ -185,12 +291,12 @@ namespace LineRenderer3D.Mods
                     int nextP = p + 1;
 
                     // Current ring indices
-                    int currentA = GetRingIndex(initialVerticesCount, numberOfFaces, i, currentP);
-                    int currentB = GetRingIndex(initialVerticesCount, numberOfFaces, nextI, currentP);
+                    int currentA = GetRingIndex(startVerticeIndex, numberOfFaces, i, currentP);
+                    int currentB = GetRingIndex(startVerticeIndex, numberOfFaces, nextI, currentP);
 
                     // Next ring indices
-                    int nextA = GetRingIndex(initialVerticesCount, numberOfFaces, i, nextP);
-                    int nextB = GetRingIndex(initialVerticesCount, numberOfFaces, nextI, nextP);
+                    int nextA = GetRingIndex(startVerticeIndex, numberOfFaces, i, nextP);
+                    int nextB = GetRingIndex(startVerticeIndex, numberOfFaces, nextI, nextP);
                     if (p != _pointsPerCurve - 1)
                     {
                         // Create two triangles per quad
@@ -204,6 +310,7 @@ namespace LineRenderer3D.Mods
                     }
                 }
             }
+            return triangles;
         }
 
         float GetDistanceMultiplayerFromAngle(float angle)
@@ -221,7 +328,7 @@ namespace LineRenderer3D.Mods
         /// <summary>
         /// Adjusts the vertices of the segment to create space for a corner.
         /// </summary>
-        void MakeDistanceForCorner(int segmentID, LRData data, ref List<Vector3> vertices, ref List<SegmentInfo> segmentInfos, out bool hasCorner)
+        void MakeDistanceForCorner(int segmentID, LRData data, ref List<SegmentInfo> segmentInfos, out bool hasCorner)
         {
             hasCorner = false;
             if (!data.IsCylinderIndexValid(segmentID)) return;
@@ -239,8 +346,8 @@ namespace LineRenderer3D.Mods
                 var prevSegment = segmentInfos[segmentID - 1];
                 startHasCorner = ArePointsFormingCorner(
                     prevSegment.endSegmentCenter,
-                    segment.endSegmentCenter,
-                    segment.startSegmentCenter
+                    segment.startSegmentCenter,
+                    segment.endSegmentCenter
                 );
             }
 
@@ -310,8 +417,9 @@ namespace LineRenderer3D.Mods
                 {
                     segment.startSegmentCenter += startTranslation;
                     foreach (int index in segment.startSegmentVericesIndex)
-                        vertices[index] += startTranslation;
+                        data.TranslateVertex(index, startTranslation);
                 }
+                Debug.Log($"segment: {segmentID} has corner on start");
                 hasCorner = true;
             }
 
@@ -321,7 +429,7 @@ namespace LineRenderer3D.Mods
                 {
                     segment.endSegmentCenter += endTranslation;
                     foreach (int index in segment.endSegmentVericesIndex)
-                        vertices[index] += endTranslation;
+                        data.TranslateVertex(index, endTranslation);
                 }
             }
         }
@@ -329,13 +437,13 @@ namespace LineRenderer3D.Mods
         /// <summary>
         /// Determines if three points form a corner based on the cross product of their vectors.
         /// </summary>
-        bool ArePointsFormingCorner(Vector3 a, Vector3 b, Vector3 c, float tolerance = 0.0001f)
+        bool ArePointsFormingCorner(Vector3 a, Vector3 b, Vector3 c)
         {
             Vector3 ab = b - a;
             Vector3 bc = c - b;
 
             Vector3 crossProduct = Vector3.Cross(ab.normalized, bc.normalized);
-            return crossProduct.sqrMagnitude > tolerance * tolerance;
+            return crossProduct.sqrMagnitude >= 0;
         }
 
         /// <summary>
@@ -363,5 +471,7 @@ namespace LineRenderer3D.Mods
             t = clamp(t, 0, 1);
             return 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1);
         }
+
+        
     }
-}*/
+}

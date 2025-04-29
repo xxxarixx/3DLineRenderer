@@ -4,7 +4,6 @@ using static LineRenderer3D.Datas.LRData;
 using static Unity.Mathematics.math;
 using LineRenderer3D.Datas;
 using LinerRenderer3D.Datas;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -51,21 +50,19 @@ namespace LineRenderer3D.Mods
         }
 
         LRBoot _boot;
-        void Start()
-        {
-            if (_boot == null)
-                _boot = GetComponent<LRBoot>();
-        }
 
         void OnEnable()
         {
-            Start();
-            _boot.AddMod(KeyName, 0);
+            if (_boot == null)
+                _boot = GetComponent<LRBoot>();
+            if(_boot.Data.ModsInfos.Find(x => x.Name == KeyName) == null)
+                _boot.AddMod(KeyName, 0);
         }
 
         void OnDisable()
         {
-            _boot.RemoveMod(KeyName, 0);
+            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) != null)
+                _boot.RemoveMod(KeyName, 0);
         }
 
         void OnDrawGizmos()
