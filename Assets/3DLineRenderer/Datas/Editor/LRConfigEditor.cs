@@ -4,6 +4,8 @@ using UnityEngine;
 using LineRenderer3D;
 using LineRenderer3D.Datas;
 using UnityEditor.ShortcutManagement;
+using System.Drawing;
+using System;
 
 namespace LinerRenderer3D.Datas.Editor
 {
@@ -15,6 +17,42 @@ namespace LinerRenderer3D.Datas.Editor
         {
             if (Selection.GetFiltered<LRBoot>(SelectionMode.TopLevel).Length > 0)
                 ToolManager.SetActiveTool<LRConfigEditor>();
+        }
+
+        public override void OnActivated()
+        {
+            Undo.undoRedoEvent += (in UndoRedoInfo undo) =>
+            {
+                if (!undo.undoName.StartsWith("3DLR"))
+                    return;
+                int pointIndex = int.Parse(undo.undoName.Split('_')[1]);
+                LRConfig.DirtyFlag dirtyFlag = Enum.Parse<LRConfig.DirtyFlag>(undo.undoName.Split('_')[2]);
+                foreach (var item in targets)
+                {
+                    if (item is not LRBoot boot)
+                        continue;
+
+                    if (boot.Data.Config == null)
+                        continue;
+
+                    var config = boot.Data.Config;
+
+                    switch (dirtyFlag)
+                    {
+                        case LRConfig.DirtyFlag.ChangedPosition:
+                            config.MarkPointDirty(pointIndex, LRConfig.DirtyFlag.ChangedPosition);
+                            break;
+                        case LRConfig.DirtyFlag.Removed:
+                            config.MarkPointDirty(pointIndex, LRConfig.DirtyFlag.Added);
+                            break;
+                        case LRConfig.DirtyFlag.Added:
+                            config.MarkPointDirty(pointIndex, LRConfig.DirtyFlag.Removed);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            };
         }
 
         public override void OnToolGUI(EditorWindow window)
@@ -70,7 +108,7 @@ namespace LinerRenderer3D.Datas.Editor
 
                         if (EditorGUI.EndChangeCheck())
                         {
-                            Undo.RecordObject(config, "3DLR Change point position");
+                            Undo.RecordObject(config, $"3DLR_{i}_{LRConfig.DirtyFlag.ChangedPosition}");
                             config.UpdatePointPosition(i, point);
                             EditorUtility.SetDirty(config);
                         }
@@ -127,14 +165,15 @@ namespace LinerRenderer3D.Datas.Editor
                 newPoint = config.GetPoint(index) + (config.GetPoint(index) - config.GetPoint(index - 1)).normalized * offsetAmount;
             }
             Debug.Log($"Added point index: {index}");
-            Undo.RecordObject(config, "3DLR Created new point");
+            Undo.RecordObject(config, $"3DLR_{index}_{LRConfig.DirtyFlag.Added}_");
             config.InsertPoint(index == 0? index : index + 1, newPoint);
             EditorUtility.SetDirty(config);
+            
         }
 
         void RemovePoint(LRConfig config, int index)
         {
-            Undo.RecordObject(config, "3DLR Remove Point");
+            Undo.RecordObject(config, $"3DLR_{index}_{LRConfig.DirtyFlag.Removed}_");
             config.RemovePoint(index);
             EditorUtility.SetDirty(config);
         }
