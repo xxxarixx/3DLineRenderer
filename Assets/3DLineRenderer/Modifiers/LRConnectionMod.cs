@@ -1,7 +1,6 @@
 using LineRenderer3D.Datas;
 using LinerRenderer3D.Datas;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using static LineRenderer3D.Datas.LRData;
 using static Unity.Mathematics.math;
@@ -45,6 +44,7 @@ namespace LineRenderer3D.Mods
 
         public string KeyName => nameof(LRConnectionModifier);
 
+        LRBoot _boot;
         void OnDrawGizmos()
         {
             // Control Points
@@ -60,49 +60,41 @@ namespace LineRenderer3D.Mods
                     Gizmos.DrawWireSphere(point, _vertexGizmosSize / 2);
         }
 
-        LRBoot _boot;
-
         void OnEnable()
         {
             if (_boot == null)
                 _boot = GetComponent<LRBoot>();
-            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) == null)
-                _boot.AddModMarkAllPointsDirty(KeyName);
+            _boot.EnableMod(KeyName, shouldMarkPointsDirty: true);
         }
 
         void OnDisable()
         {
-            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) != null)
-            {
-                _boot.RemoveModMarkAllPointsDirty(KeyName);
-                lastAdditionalData = null;
-            }
+            _boot.DisableMod(KeyName, shouldMarkPointsDirty: true);
         }
 
         public List<int> RecalculateTriangles(LRData data, ModInfo currentMod, int startVerticeIndex, int startTriangleIndex, int segmentIndex, List<SegmentInfo> segmentInfos)
         {
-            /*var segment = segmentInfos[segmentIndex];
-            bool isFirstSegment = segmentIndex == 0;
-            bool hasCorner = false;
-            if (!isFirstSegment)
-            {
-                var prevSegment = segmentInfos[segmentIndex - 1];
-                hasCorner = ArePointsFormingCorner(
-                    prevSegment.endSegmentCenter,
-                    segment.startSegmentCenter,
-                    segment.endSegmentCenter
-                );
-            }
+            // need to also update all triangles above this segment.
+            MakeDistanceForCorner(segmentID: segmentIndex, data, ref segmentInfos, checkIfAppliedTranslation: true, out bool hasCorner);
 
             if (!hasCorner || segmentIndex == 0 || segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.PointsCount)
-                return new();
+                 return new();
 
-            return GetConnectionTraingles(segmentIndex, startVerticeIndex, data, segmentInfos);*/
-            return currentMod.Triangles;
+             AdditionalData additionalData = (AdditionalData)currentMod.ModsAdditionalData;
+             if (additionalData != null && segmentIndex > 1)
+                 startVerticeIndex = additionalData.connectionDatas[segmentIndex - 1].Triangles[^3] + 1;
+
+             additionalData.connectionDatas[segmentIndex].Triangles = GetConnectionTraingles(startVerticeIndex, data);
+
+             currentMod.Triangles.Clear();
+             foreach (var item in additionalData.connectionDatas)
+             {
+                 var conData = item.Value;
+                 currentMod.Triangles.AddRange(conData.Triangles);
+             }
+
+             return currentMod.Triangles;
         }
-
-        
-        public AdditionalData lastAdditionalData;
 
         public ModInfo ManipulateMesh(LRData data, int startVerticeIndex, int startTriangleIndex, int segmentIndex, ref List<SegmentInfo> segmentInfos)
         {
@@ -122,31 +114,23 @@ namespace LineRenderer3D.Mods
             AdditionalData additionalData = (AdditionalData)lrConnectionMod.ModsAdditionalData;
             Dictionary<int, ConnectionData> connectionDatas = additionalData.connectionDatas;
 
-            Debug.Log($"holding segmentID: {segmentIndex}");
             // Change current segments to make distance for corner
-            MakeDistanceForCorner(segmentID: segmentIndex, data, ref segmentInfos, out bool hasCorner);
+            MakeDistanceForCorner(segmentID: segmentIndex, data, ref segmentInfos, checkIfAppliedTranslation: false, out bool hasCorner);
 
             if (!hasCorner || segmentIndex == 0 || segmentIndex >= segmentInfos.Count && segmentInfos.Count >= data.Config.PointsCount)
-            {
-                lastAdditionalData = additionalData;
                 return default;
-            }
+
             if (!connectionDatas.ContainsKey(segmentIndex))
                 connectionDatas.Add(segmentIndex, connectionData);
-            Debug.Log($"passed segmentID: {segmentIndex} connectionDataCount: {additionalData.connectionDatas.Count}");
             
             if (lrConnectionMod.ModsAdditionalData != null && segmentIndex > 1)
-            {
-                Debug.Log("replaced");  
                 startVerticeIndex = connectionDatas[segmentIndex - 1].Triangles[^3] + 1;
-            }
             
 
              CreateConnections(segmentIndex: segmentIndex, startVerticeIndex, ref connectionData, data, segmentInfos);
 
 
             additionalData.connectionDatas[segmentIndex] = connectionData;
-            lastAdditionalData = additionalData;
 
             lrConnectionMod.Vertices.Clear();
             lrConnectionMod.Normals.Clear();
@@ -251,7 +235,7 @@ namespace LineRenderer3D.Mods
             }
 
             // Generate triangles between segments
-            connectionData.Triangles.AddRange(GetConnectionTraingles(segmentIndex, startVerticeIndex, data, segmentInfos));
+            connectionData.Triangles.AddRange(GetConnectionTraingles(startVerticeIndex, data));
         }
 
         [System.Serializable]
@@ -275,7 +259,7 @@ namespace LineRenderer3D.Mods
         }
 
 
-        List<int> GetConnectionTraingles(int segmentIndex, int startVerticeIndex, LRData data, List<SegmentInfo> segmentInfos)
+        List<int> GetConnectionTraingles(int startVerticeIndex, LRData data)
         {
             List<int> triangles = new();
             int numberOfFaces = data.Config.NumberOfFaces;
@@ -328,7 +312,7 @@ namespace LineRenderer3D.Mods
         /// <summary>
         /// Adjusts the vertices of the segment to create space for a corner.
         /// </summary>
-        void MakeDistanceForCorner(int segmentID, LRData data, ref List<SegmentInfo> segmentInfos, out bool hasCorner)
+        void MakeDistanceForCorner(int segmentID, LRData data, ref List<SegmentInfo> segmentInfos, bool checkIfAppliedTranslation, out bool hasCorner)
         {
             hasCorner = false;
             if (!data.IsCylinderIndexValid(segmentID)) return;
@@ -339,6 +323,9 @@ namespace LineRenderer3D.Mods
 
             bool startHasCorner = false;
             bool endHasCorner = false;
+
+            bool hasStartAlreadyAppliedTranslation = checkIfAppliedTranslation && Vector3.Distance(segment.startSegmentCenter, segment.initStartSegmentCenter) >= data.Config.SegmentMinLength;
+            bool hasEndAlreadyAppliedTranslation = checkIfAppliedTranslation && Vector3.Distance(segment.endSegmentCenter, segment.initEndSegmentCenter) >= data.Config.SegmentMinLength;
 
             // Check previous segment (start of current segment)
             if (!isFirstSegment)
@@ -361,51 +348,56 @@ namespace LineRenderer3D.Mods
                     nextSegment.endSegmentCenter
                 );
             }
-
-            // Calculate potential new length after adjustments
-            float originalLength = Vector3.Distance(segment.startSegmentCenter, segment.endSegmentCenter);
-            float remainingLength = originalLength;
-
+            float totalAdjustment = 0f;
             Vector3 startTranslation = Vector3.zero;
             Vector3 endTranslation = Vector3.zero;
 
-            if (startHasCorner)
+            // Calculate adjustments
+            if (startHasCorner && !hasStartAlreadyAppliedTranslation || endHasCorner && !hasEndAlreadyAppliedTranslation)
             {
-                Vector3 startDirection = (segment.endSegmentCenter - segment.startSegmentCenter).normalized;
-                startTranslation = startDirection * _distance;
-                remainingLength -= _distance;
-            }
+                // Calculate potential new length after adjustments
+                float originalLength = Vector3.Distance(segment.startSegmentCenter, segment.endSegmentCenter);
+                float remainingLength = originalLength;
 
-            if (endHasCorner)
-            {
-                Vector3 endDirection = (segment.startSegmentCenter - segment.endSegmentCenter).normalized;
-                endTranslation = endDirection * _distance;
-                remainingLength -= _distance;
-            }
-
-            // Ensure the remaining length is at least twice the radius to prevent overlap
-            float minLength = data.Config.SegmentMinLength;
-            float totalAdjustment = originalLength - minLength;
-            if (remainingLength < minLength)
-            {
-                // Adjust distances proportionally
-                if (totalAdjustment > 0)
+                if (startHasCorner)
                 {
-                    // Not enough to adjust
-                    if (startHasCorner && endHasCorner)
+                    Vector3 startDirection = (segment.endSegmentCenter - segment.startSegmentCenter).normalized;
+                    startTranslation = startDirection * _distance;
+                    remainingLength -= _distance;
+                }
+
+                if (endHasCorner)
+                {
+                    Vector3 endDirection = (segment.startSegmentCenter - segment.endSegmentCenter).normalized;
+                    endTranslation = endDirection * _distance;
+                    remainingLength -= _distance;
+                }
+
+                // Ensure the remaining length is at least twice the radius to prevent overlap
+                float minLength = data.Config.SegmentMinLength;
+                totalAdjustment = originalLength - minLength;
+                if (remainingLength < minLength)
+                {
+                    // Adjust distances proportionally
+                    if (totalAdjustment > 0)
                     {
-                        float adjustRatio = totalAdjustment / (2 * _distance);
-                        startTranslation *= adjustRatio;
-                        endTranslation *= adjustRatio;
+                        // Not enough to adjust
+                        if (startHasCorner && endHasCorner)
+                        {
+                            float adjustRatio = totalAdjustment / (2 * _distance);
+                            startTranslation *= adjustRatio;
+                            endTranslation *= adjustRatio;
+                        }
+                        else if (startHasCorner)
+                        {
+                            startTranslation = (segment.endSegmentCenter - segment.startSegmentCenter).normalized * totalAdjustment;
+                        }
+                        else if (endHasCorner)
+                        {
+                            endTranslation = (segment.startSegmentCenter - segment.endSegmentCenter).normalized * totalAdjustment;
+                        }
                     }
-                    else if (startHasCorner)
-                    {
-                        startTranslation = (segment.endSegmentCenter - segment.startSegmentCenter).normalized * totalAdjustment;
-                    }
-                    else if (endHasCorner)
-                    {
-                        endTranslation = (segment.startSegmentCenter - segment.endSegmentCenter).normalized * totalAdjustment;
-                    }
+
                 }
 
             }
@@ -419,7 +411,6 @@ namespace LineRenderer3D.Mods
                     foreach (int index in segment.startSegmentVericesIndex)
                         data.TranslateVertex(index, startTranslation);
                 }
-                Debug.Log($"segment: {segmentID} has corner on start");
                 hasCorner = true;
             }
 

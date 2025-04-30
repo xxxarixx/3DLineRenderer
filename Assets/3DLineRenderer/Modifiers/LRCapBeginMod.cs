@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using static LineRenderer3D.Datas.LRData;
-using static Unity.Mathematics.math;
 using LineRenderer3D.Datas;
 using LinerRenderer3D.Datas;
 #if UNITY_EDITOR
@@ -31,7 +30,6 @@ namespace LineRenderer3D.Mods
 
         public ModInfo ManipulateMesh(LRData data, int startVerticeIndex, int startTriangleIndex, int segmentIndex, ref List<SegmentInfo> segmentInfos)
         {
-            // TODO: There is bug when one cap is generated second one cannot, it's due to possibility to only have one ModInfo per mod and values aren't added but cleared and then added.
             if (segmentInfos.Count < 1)
                 return default;
             ModInfo generatedModInfo = default;
@@ -55,14 +53,12 @@ namespace LineRenderer3D.Mods
         {
             if (_boot == null)
                 _boot = GetComponent<LRBoot>();
-            if(_boot.Data.ModsInfos.Find(x => x.Name == KeyName) == null)
-                _boot.AddMod(KeyName, 0);
+            _boot.EnableMod(KeyName, shouldMarkPointsDirty: true);
         }
 
         void OnDisable()
         {
-            if (_boot.Data.ModsInfos.Find(x => x.Name == KeyName) != null)
-                _boot.RemoveMod(KeyName, 0);
+            _boot.DisableMod(KeyName, shouldMarkPointsDirty: true);
         }
 
         void OnDrawGizmos()

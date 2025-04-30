@@ -4,7 +4,7 @@ using LineRenderer3D.Datas;
 namespace LineRenderer3D.Mods
 {
     /// <summary>
-    /// The base interface for all line renderer modifiers.
+    /// The base interface for all line renderer modifiers, to properly add/remove mod needed is integration with <see cref="LRBoot"/>.
     /// </summary>
     public interface ILRModBase
     {

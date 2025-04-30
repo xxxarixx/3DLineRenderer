@@ -83,20 +83,17 @@ public class LRDebugMod : MonoBehaviour, ILRModBase
     LRData _data;
 
     LRBoot _boot;
-    void Start()
-    {
-        if (_boot == null)
-            _boot = GetComponent<LRBoot>();
-    }
 
     void OnEnable()
     {
-        _boot.AddModWithoutDirty(KeyName);
+        if (_boot == null)
+            _boot = GetComponent<LRBoot>();
+        _boot.EnableMod(KeyName, shouldMarkPointsDirty: false);
     }
 
     void OnDisable()
     {
-        _boot.RemoveModWithoutDirty(KeyName);
+        _boot.DisableMod(KeyName, shouldMarkPointsDirty: false);
     }
 
 
